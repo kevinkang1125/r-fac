@@ -66,7 +66,7 @@ class V2DN_agent:
             action = self.q_net(obs, action_mask).argmax().item()
         return action
 
-    def update(self, transition_dict,td_error):
+    def update(self, transition_dict,td_errors):
         observations = [torch.tensor(obs, dtype=torch.float).to(self.device) for obs in transition_dict['observations']]
         next_observations = [torch.tensor(next_obs, dtype=torch.float).to(self.device) for next_obs in
                              transition_dict['next_observations']]
@@ -77,15 +77,15 @@ class V2DN_agent:
         dones = torch.tensor(transition_dict['dones'], dtype=torch.float).view(-1, 1).to(self.device)
         valid_actions_list = transition_dict['action_num']
         action_masks = self.create_action_masks(self.action_dim, valid_actions_list, self.device)
-        next_valid_actions_list = transition_dict['action_num']
-        next_action_masks = self.create_action_masks(self.action_dim, next_valid_actions_list, self.device)
+        # next_valid_actions_list = transition_dict['action_num']
+        # next_action_masks = self.create_action_masks(self.action_dim, next_valid_actions_list, self.device)
 
         q_values = self.q_net(observations, action_masks).gather(1, actions)  # Q值
         # 下个状态的最大Q值
-        max_next_q_values = self.target_q_net(next_observations, next_action_masks).max(1)[0].view(
-            -1, 1)
-        q_targets = rewards + self.gamma * max_next_q_values * (1 - dones)  # TD误差目标
-
+        # max_next_q_values = self.target_q_net(next_observations, next_action_masks).max(1)[0].view(
+        #     -1, 1)
+        q_targets = q_values.clone().detach() + td_errors  # TD误差目标
+        ##use TD error 
         dqn_loss = torch.mean(F.mse_loss(q_values, q_targets))  # 均方误差损失函数
         self.optimizer.zero_grad()  # PyTorch中默认梯度会累积,这里需要显式将梯度置为0
         dqn_loss.backward()  # 反向传播更新参数
@@ -111,7 +111,7 @@ class V2DN_agent:
 class V2DN:
     def __init__(self,n_agents, input_dim, n_actions):
         self.agents = [V2DN_agent(input_dim, n_actions) for _ in range(n_agents)]
-    def learn(self, states, actions, team_reward, next_states):
+    def learn(self, states, actions, team_reward, next_states,alive_index):
         # Get Q-values for the current state and action for all agents
         current_q_values = [agent.model(torch.FloatTensor(state))[action].item() for agent, state, action in zip(self.agents, states, actions)]
         
