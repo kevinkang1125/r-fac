@@ -9,15 +9,14 @@ import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from torch.nn.utils.rnn import pad_sequence
-import torch.nn as nn
 sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/Environment')
 sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/Quality_Diversity')
 sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/RL_POMDP')
-import rl_utils
+import benchmark.rl_utils as rl_utils
 from gym_pqh_multi_target import gym_pqh
 from Target import TargetModel
-import multi_robot_utils_off_policy
-from ReplayBuffer import ReplayBuffer
+import benchmark.multi_robot_utils_off_policy as multi_robot_utils_off_policy
+from benchmark.ReplayBuffer import ReplayBuffer
 
 class Qnet(torch.nn.Module):
     def __init__(self, obs_dim, hidden_dim, action_dim):
@@ -45,8 +44,8 @@ class Qnet(torch.nn.Module):
         # return F.softmax(logits_masked, dim=1)
         return q_value
 
-class V2DN:
-    def __init__(self, obs_dim, hidden_dim, action_dim, learning_rate, gamma, epsilon, target_update, device):
+class V2DN_agent:
+    def __init__(self,obs_dim, hidden_dim, action_dim, learning_rate, gamma, epsilon, target_update, device):
         self.device = device
         self.action_dim = action_dim
         self.q_net = Qnet(obs_dim, hidden_dim, action_dim).to(device)
@@ -67,7 +66,7 @@ class V2DN:
             action = self.q_net(obs, action_mask).argmax().item()
         return action
 
-    def update(self, transition_dict):
+    def update(self, transition_dict,td_error):
         observations = [torch.tensor(obs, dtype=torch.float).to(self.device) for obs in transition_dict['observations']]
         next_observations = [torch.tensor(next_obs, dtype=torch.float).to(self.device) for next_obs in
                              transition_dict['next_observations']]
@@ -108,6 +107,28 @@ class V2DN:
             action_masks.append(action_mask)
         action_masks_tensor = torch.tensor(action_masks, dtype=torch.bool).to(device)
         return action_masks_tensor
+    
+class V2DN:
+    def __init__(self,n_agents, input_dim, n_actions):
+        self.agents = [V2DN_agent(input_dim, n_actions) for _ in range(n_agents)]
+    def learn(self, states, actions, team_reward, next_states):
+        # Get Q-values for the current state and action for all agents
+        current_q_values = [agent.model(torch.FloatTensor(state))[action].item() for agent, state, action in zip(self.agents, states, actions)]
+        
+        # For the next state, get max Q-values of next states from all agents
+        next_max_q_values = [torch.max(agent.model(torch.FloatTensor(next_state))).item() for agent, next_state in zip(self.agents, next_states)]
+        
+        # Compute the joint target Q-value using the team reward
+        joint_target_q_value = team_reward + self.agents[0].gamma * sum(next_max_q_values)
+        
+        # Calculate TD errors for individual agents
+        td_errors = [joint_target_q_value - q for q in current_q_values]
+        
+        # Update each agent's Q-network based on its TD error
+        for i, (agent, state, action, next_state) in enumerate(zip(self.agents, states, actions, next_states)):
+            agent.learn(state, action, td_errors[i])
+            
+
 if __name__ == "__main__":
     lr = 1e-4
     epsilon = 0.01
@@ -133,7 +154,7 @@ if __name__ == "__main__":
     replay_buffers = []
 
     for i in range(robot_num):
-        agent = V2DN(state_dim, hidden_dim, action_dim, lr, gamma, epsilon, target_update, device)
+        agent = V2DN_agent(state_dim, hidden_dim, action_dim, lr, gamma, epsilon, target_update, device)
         replay_buffer = ReplayBuffer(buffer_size)
         agents.append(agent)
         replay_buffers.append(replay_buffer)
@@ -154,37 +175,3 @@ if __name__ == "__main__":
     plt.ylabel('Returns')
     plt.title('VPG on {}'.format(env_name))
     plt.show()
-    
-    
-class V2DNAgent(nn.Module):
-    def __init__(self, input_size):
-        super(V2DNAgent, self).__init__()
-
-        # self.action_space = action_space
-        # self.normalize_size = normalize_size
-        self.seq = nn.Sequential(nn.Linear(input_size, 64),
-                                 nn.ReLU(),
-                                 # NoisyLinear(64, 1))
-                                 nn.Linear(64, 1))
-
-        for m in self.seq:
-            if isinstance(m, nn.Linear):
-                nn.init.xavier_uniform_(m.weight)
-                nn.init.constant_(m.bias, 0)
-
-    def forward(self, x):
-        return self.seq(x)
-
-
-class V2DNNet(nn.Module):
-    def __init__(self, env, seed):
-        super(V2DNNet, self).__init__()
-        self.seed = torch.manual_seed(seed)
-        input_size = len(env.get_agent_obs()[0][0])
-        self.n_agents = env.n_agents
-        for i in range(self.n_agents):
-            agent_i = 'agent_{}'.format(i)
-            setattr(self, agent_i, V2DNAgent(input_size=input_size))
-
-    def agent(self, i):
-        return getattr(self, 'agent_{}'.format(i))

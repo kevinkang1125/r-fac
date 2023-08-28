@@ -12,10 +12,10 @@ from torch.nn.utils.rnn import pad_sequence
 sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/Environment')
 sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/Quality_Diversity')
 sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/RL_POMDP')
-import rl_utils
+import rl_utils as rl_utils
 from gym_pqh_multi_target import gym_pqh
 from Target import TargetModel
-import multi_robot_utils_off_policy
+import multi_robot_utils_off_policy as multi_robot_utils_off_policy
 from ReplayBuffer import ReplayBuffer
 
 class Qnet(torch.nn.Module):
@@ -110,7 +110,7 @@ class DQN:
 if __name__ == "__main__":
     lr = 1e-4
     epsilon = 0.01
-    num_episodes = 20000
+    num_episodes = 2000
     target_update = 10
     buffer_size = 1000
     minimal_size = 500
@@ -118,8 +118,8 @@ if __name__ == "__main__":
 
     hidden_dim = 128
     gamma = 0.95
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
+    # device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cpu")
     env_name = "MUSEUM"
     mode_name = "random"
     robot_num = 3

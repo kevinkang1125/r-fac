@@ -8,15 +8,10 @@ import matplotlib.pyplot as plt
 
 from torch.nn.utils.rnn import pad_sequence
 import random
-import sys
-
-sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/Environment')
-sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/Quality_Diversity')
-sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/RL_POMDP')
-import benchmark.rl_utils as rl_utils
-from gym_pqh_multi_target import gym_pqh
-from Target import TargetModel
-import multi_robot_utils_archive_4th
+from Efficient_Search.RL_POMDP import rl_utils
+from Efficient_Search.Environment.gym_pqh_multi_target import gym_pqh
+from Efficient_Search.Environment.Target import TargetModel
+from Efficient_Search.Quality_Diversity import multi_robot_utils
 
 class PolicyNet(torch.nn.Module):
     def __init__(self, obs_dim, hidden_dim, action_dim):
@@ -52,6 +47,7 @@ class MADPG:
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
         self.gamma = gamma
         self.device = device
+        self.beta = 0.0
 
     def take_action(self, obs, action_num, epsilon):
 
@@ -97,14 +93,17 @@ class MADPG:
 
         min_log_prob = -2.303
         max_log_prob = -0.105
-        log_probs = torch.clamp(torch.log(self.actor(observations, action_masks).gather(1, actions)), min_log_prob,
-                                max_log_prob)
+
+        probs = self.actor(observations, action_masks).gather(1, actions)
+        log_probs = torch.clamp(torch.log(probs), min_log_prob, max_log_prob)
+        entropy = - torch.mean(self.beta * probs * log_probs)
         # print("log_probs:", log_probs)
         actor_loss = -torch.mean(log_probs * returns)
+        loss = actor_loss + entropy
         # print("calculate:", log_probs * returns)
         # print("actor_loss:", actor_loss)
         self.actor_optimizer.zero_grad()
-        actor_loss.backward()
+        loss.backward()
         self.actor_optimizer.step()
 
     def create_action_mask(self, total_actions, valid_actions):
@@ -126,14 +125,15 @@ if __name__ == "__main__":
     actor_lr = 2e-5
     diversity_lr = 2e-5
     num_episodes = 40000
-    hidden_dim = 128
-    gamma = 0.95
+    hidden_dim = 256
+    gamma = 0.9
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
+    algorithm_name = "MADPG"
     env_name = "MUSEUM"
     mode_name = "random"
-    robot_num = 3
-    target_model = TargetModel("MUSEUM_Random")
+    robot_num = 1
+    target_model = TargetModel(env_name + "_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
     state_dim = env.position_embed
@@ -144,18 +144,18 @@ if __name__ == "__main__":
         agent = MADPG(state_dim, hidden_dim, action_dim, actor_lr, gamma, device)
         agents.append(agent)
 
-    return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent_MADPG(env, agents, num_episodes)
+    return_list = multi_robot_utils.train_multi_robot(env, agents, num_episodes, algorithm_name)
 
     episodes_list = list(range(len(return_list)))
     plt.plot(episodes_list, return_list)
     plt.xlabel('Episodes')
     plt.ylabel('Returns')
-    plt.title('MADPG on {}'.format(env_name))
+    plt.title(algorithm_name + ' efficient on {}'.format(env_name) + " ,Num:" + str(robot_num))
     plt.show()
 
     mv_return = rl_utils.moving_average(return_list, 101)
     plt.plot(episodes_list, mv_return)
     plt.xlabel('Episodes')
     plt.ylabel('Returns')
-    plt.title('MADPG on {}'.format(env_name))
+    plt.title(algorithm_name + ' efficient on {}'.format(env_name) + " ,Num:" + str(robot_num))
     plt.show()

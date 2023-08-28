@@ -15,8 +15,7 @@ class ReplayBuffer:
         transitions = random.sample(self.buffer, batch_size)
         observation, action, action_num, reward, reward_part2, next_observation, next_action_num, done = \
             zip(*transitions)
-        return np.array(observation), action, action_num, reward, reward_part2, np.array(next_observation),\
-               next_action_num, done
+        return observation, action, action_num, reward, reward_part2, next_observation,next_action_num, done
 
     def size(self):  # 目前buffer中数据的数量
         return len(self.buffer)
