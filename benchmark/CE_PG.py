@@ -1,5 +1,4 @@
-# MADPG efficient search version
-
+# CE_PG efficient search version
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
@@ -13,7 +12,7 @@ import sys
 sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/Environment')
 sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/Quality_Diversity')
 sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/RL_POMDP')
-import benchmark.rl_utils as rl_utils
+import rl_utils
 from gym_pqh_multi_target import gym_pqh
 from Target import TargetModel
 import multi_robot_utils_archive_4th
@@ -43,9 +42,10 @@ class PolicyNet(torch.nn.Module):
         # print("after_action_mask:",logits_masked)
         return F.softmax(logits_masked, dim=1)
 
-class MADPG:
+class CEPG:
     ''' Vanilla Policy Gradient (REINFORCE) algorithm '''
-    def __init__(self, obs_dim, hidden_dim, action_dim, actor_lr, gamma, device):
+    def __init__(self, obs_dim, hidden_dim, action_dim, actor_lr, gamma, device, beta):
+        self.beta = beta
         self.device = device
         self.action_dim = action_dim
         self.actor = PolicyNet(obs_dim, hidden_dim, action_dim).to(device)
@@ -78,6 +78,15 @@ class MADPG:
             returns[t] = next_return + rewards_part2[t]
         return returns
 
+    def get_probs(self, transition_dict):
+        observations = [torch.tensor(obs, dtype=torch.float).to(self.device) for obs in transition_dict['observations']]
+        actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
+        valid_actions_list = transition_dict['action_num']
+        action_masks = self.create_action_masks(self.action_dim, valid_actions_list, self.device)
+        with torch.no_grad():
+            probs = self.actor(observations, action_masks).gather(1, actions)
+        return probs
+
     def update(self, transition_dict):
         observations = [torch.tensor(obs, dtype=torch.float).to(self.device) for obs in transition_dict['observations']]
         actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
@@ -86,6 +95,7 @@ class MADPG:
         dones = torch.tensor(transition_dict['dones'], dtype=torch.float).view(-1, 1).to(self.device)
         valid_actions_list = transition_dict['action_num']
         returns = self.compute_returns(self.gamma, rewards.cpu(), rewards_part2.cpu(), dones.cpu()).to(self.device)
+        cross_probs = transition_dict['cross_probs']
         # print('Returns:', returns)
         # action_masks = self.create_action_masks(action_dim, valid_actions_list, self.device)
         # action_masks = [torch.tensor(action_mask, dtype=torch.bool).to(self.device) for action_mask in action_masks]
@@ -94,17 +104,17 @@ class MADPG:
         # print("rewards_part2:",rewards_part2.view(-1))
         # print("dones:", dones)
         # log_probs = torch.log(self.actor(observations, action_masks).gather(1, actions))
-
         min_log_prob = -2.303
         max_log_prob = -0.105
         log_probs = torch.clamp(torch.log(self.actor(observations, action_masks).gather(1, actions)), min_log_prob,
                                 max_log_prob)
-        # print("log_probs:", log_probs)
         actor_loss = -torch.mean(log_probs * returns)
+        cross_loss = torch.mean(log_probs * cross_probs)
+        loss = actor_loss + self.beta * cross_loss
         # print("calculate:", log_probs * returns)
         # print("actor_loss:", actor_loss)
         self.actor_optimizer.zero_grad()
-        actor_loss.backward()
+        loss.backward()
         self.actor_optimizer.step()
 
     def create_action_mask(self, total_actions, valid_actions):
@@ -121,8 +131,8 @@ class MADPG:
 
     def clamp(self, x, min_val, max_val):
         return max(min(x, max_val), min_val)
-
 if __name__ == "__main__":
+    beta = 0.1
     actor_lr = 2e-5
     diversity_lr = 2e-5
     num_episodes = 40000
@@ -141,21 +151,21 @@ if __name__ == "__main__":
 
     agents = []
     for i in range(robot_num):
-        agent = MADPG(state_dim, hidden_dim, action_dim, actor_lr, gamma, device)
+        agent = CEPG(state_dim, hidden_dim, action_dim, actor_lr, gamma, device, beta)
         agents.append(agent)
 
-    return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent_MADPG(env, agents, num_episodes)
+    return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent_CEPG(env, agents, num_episodes)
 
     episodes_list = list(range(len(return_list)))
     plt.plot(episodes_list, return_list)
     plt.xlabel('Episodes')
     plt.ylabel('Returns')
-    plt.title('MADPG on {}'.format(env_name))
+    plt.title('CE_PG on {}'.format(env_name))
     plt.show()
 
     mv_return = rl_utils.moving_average(return_list, 101)
     plt.plot(episodes_list, mv_return)
     plt.xlabel('Episodes')
     plt.ylabel('Returns')
-    plt.title('MADPG on {}'.format(env_name))
+    plt.title('CE_PG on {}'.format(env_name))
     plt.show()
