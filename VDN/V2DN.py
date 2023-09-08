@@ -159,15 +159,15 @@ class VDN:
         for m in range (4):
             td_list.append(td_errors)   
 
-        print(td_errors,td_errors.shape,td_list)
+        #print(td_errors,td_errors.shape,td_list)
         # Calculate TD errors for individual agents
         ####add MSE in the future
         for a in alive_index:
         
-            # weights = (current_q_values[:,i:i+1]/(joint_current+1e-10))
-            # individual_td_error = weights*td_errors
-            #self.agents[i].update(individual_td_error)
-            self.agents[a].update(td_list[a],transition_list[alive_index.index(a)])
+            weights = (current_q_values[:,i:i+1]/(joint_current+1e-10))
+            individual_td_error = weights*td_errors
+            self.agents[a].update(individual_td_error,transition_list[alive_index.index(a)])
+            #self.agents[a].update(td_list[a],transition_list[alive_index.index(a)])
 
 class V2DN:
     def __init__(self,agents,gamma_2,agent_num):
@@ -204,9 +204,9 @@ if __name__ == "__main__":
     epsilon = 0.01
     num_episodes = 10
     target_update = 2
-    buffer_size = 1000
+    buffer_size = 60
     minimal_size = 30
-    batch_size = 50
+    batch_size = 60
     rho = 0.9
 
     hidden_dim = 128
@@ -234,7 +234,7 @@ if __name__ == "__main__":
     mixer = VDN(agents,gamma_2,agent_num=robot_num, batch_size= batch_size)
 
     return_list = multi_robot_utils_off_policy.train_V2DN_off_policy_multi_agent(env, mixer,agents, replay_buffers, num_episodes,
-                                                                            minimal_size, batch_size,rho)
+                                                                             batch_size,rho)
 
     episodes_list = list(range(len(return_list)))
     plt.plot(episodes_list, return_list)
@@ -243,9 +243,9 @@ if __name__ == "__main__":
     plt.title('Performance on {} with rho={}'.format(env_name,rho))
     plt.show()
 
-    mv_return = rl_utils.moving_average(return_list, 101)
-    plt.plot(episodes_list, mv_return)
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.title('VPG on {}'.format(env_name))
-    plt.show()
+    # mv_return = rl_utils.moving_average(return_list, 101)
+    # plt.plot(episodes_list, mv_return)
+    # plt.xlabel('Episodes')
+    # plt.ylabel('Returns')
+    # plt.title('VPG on {}'.format(env_name))
+    # plt.show()
