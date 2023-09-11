@@ -39,7 +39,7 @@ class Qnet(torch.nn.Module):
         q_value = x.masked_fill(action_mask, float('-inf'))
         return q_value
 
-class V2DN_agent:
+class Agent:
     def __init__(self,obs_dim, hidden_dim, action_dim, learning_rate, gamma, epsilon, target_update, device):
         self.device = device
         self.action_dim = action_dim
@@ -75,9 +75,13 @@ class V2DN_agent:
         q_targets = (q_values.clone().detach() + td_errors).view(-1,1)  # TD误差目标
         ##use TD error 
         vdn_loss = torch.mean(F.mse_loss(q_values, q_targets))
+        vdn_loss = vdn_loss.item()
+        #need to improve the code
+        #vdn_loss = 0.05
+        vdn_loss = torch.tensor(vdn_loss, requires_grad=True)
         #print(dqn_loss.shape) # 均方误差损失函数
         self.optimizer.zero_grad()  # PyTorch中默认梯度会累积,这里需要显式将梯度置为0
-        #torch.autograd.set_detect_anomaly(True)
+        torch.autograd.set_detect_anomaly(True)
         vdn_loss.backward(retain_graph=True)  # 反向传播更新参数
   
         self.optimizer.step()
@@ -120,7 +124,70 @@ class V2DN_agent:
         action_masks_tensor = torch.tensor(action_masks, dtype=torch.bool).to(device)
         return action_masks_tensor
     
-class VDN_On:
+class VDN_On_pre:
+    def __init__(self,agents,gamma_2,agent_num, horizon):
+        self.agents = agents
+        self.gamma = gamma_2
+        self.agent_num = agent_num
+        self.horizon = horizon
+    def learn(self, alive_index,transition_dicts):
+        # Get Q-values for the current state and action for all agents
+        joint_current = torch.zeros(self.horizon,1)
+        joint_next = torch.zeros(self.horizon,1)
+        team_reward = torch.zeros(self.horizon,1)
+        current_q_values = torch.zeros(self.horizon,self.agent_num)
+        next_max_q_values = torch.zeros(self.horizon,self.agent_num)
+        rewards = torch.zeros(self.horizon,self.agent_num)
+        for i in alive_index:
+            current_q_values[:,i:i+1],next_max_q_values[:,i:i+1],rewards[:,i:i+1] = self.agents[i].output_agent(transition_dicts[i])
+            joint_current = joint_current + current_q_values[:,i:i+1]
+            joint_next =joint_next +next_max_q_values[:,i:i+1]
+            team_reward =team_reward + rewards[:,i:i+1]
+         
+        # Compute the joint target Q-value using the team reward
+        joint_target_q_value = team_reward + gamma * joint_next
+        
+        td_errors = joint_target_q_value - joint_current
+        #td_errors = td_errors.detach()
+        ####add MSE in the future
+        for a in alive_index:
+            weights = (current_q_values[:,i:i+1]/(joint_current+1e-10))
+            individual_td_error = weights*td_errors
+            self.agents[a].update(individual_td_error,transition_dicts[a])
+            td_errors = td_errors.detach()
+
+class VDN_On_dur:
+    def __init__(self,agents,gamma_2,agent_num, horizon):
+        self.agents = agents
+        self.gamma = gamma_2
+        self.agent_num = agent_num
+        self.horizon = horizon
+    def pre_learn(self, current_q_values, next_max_q_values,rewards, alive_index,transition_dicts):
+        # Get Q-values for the current state and action for all agents
+        joint_current = torch.zeros(self.horizon,1)
+        joint_next = torch.zeros(self.horizon,1)
+        team_reward = torch.zeros(self.horizon,1)
+        current_q_values = torch.zeros(self.horizon,self.agent_num)
+        next_max_q_values = torch.zeros(self.horizon,self.agent_num)
+        rewards = torch.zeros(self.horizon,1)
+        for i in alive_index:
+            current_q_values[:,i:i+1],next_max_q_values[:,i:i+1],rewards[:,i:i+1] = self.agents[i].output_agent(transition_dicts[i])
+            joint_current = joint_current + current_q_values[:,i:i+1]
+            joint_next =joint_next +next_max_q_values[:,i:i+1]
+            team_reward =team_reward+ rewards[:,i:i+1]
+         
+        # Compute the joint target Q-value using the team reward
+        joint_target_q_value = team_reward + gamma * joint_next
+        
+        td_errors = joint_target_q_value-joint_current
+        #td_errors = td_errors.detach()
+        ####add MSE in the future
+        for a in alive_index:
+            weights = (current_q_values[:,i:i+1]/(joint_current+1e-10))
+            individual_td_error = weights*td_errors
+            self.agents[a].update(individual_td_error,transition_dicts[a])            
+
+class V2DN_pre:
     def __init__(self,agents,gamma_2,agent_num, horizon):
         self.agents = agents
         self.gamma = gamma_2
@@ -151,9 +218,8 @@ class VDN_On:
             weights = (current_q_values[:,i:i+1]/(joint_current+1e-10))
             individual_td_error = weights*td_errors
             self.agents[a].update(individual_td_error,transition_dicts[a])
-            
 
-class V2DN:
+class V2DN_dur:
     def __init__(self,agents,gamma_2,agent_num, horizon):
         self.agents = agents
         self.gamma = gamma_2
@@ -178,6 +244,7 @@ class V2DN:
         
         td_errors = joint_target_q_value-joint_current
         td_errors = td_errors.detach()
+        print(td_errors)
         ####add MSE in the future
         for a in alive_index:
         
@@ -191,7 +258,7 @@ class V2DN:
 if __name__ == "__main__":
     lr = 1e-4
     epsilon = 0.01
-    num_episodes = 10
+    num_episodes = 100
     target_update = 2
     buffer_size = 60
     minimal_size = 30
@@ -217,16 +284,14 @@ if __name__ == "__main__":
     replay_buffers = []
 
     for i in range(robot_num):
-        agent = V2DN_agent(state_dim, hidden_dim, action_dim, lr, gamma, epsilon, target_update, device)
-        #replay_buffer = ReplayBuffer(buffer_size)
+        agent = Agent(state_dim, hidden_dim, action_dim, lr, gamma, epsilon, target_update, device)
         agents.append(agent)
-        #replay_buffers.append(replay_buffer)
     
-    mixer = VDN_On(agents,gamma_2,agent_num=robot_num, horizon= horizon)
+    mixer = VDN_On_pre(agents,gamma_2,agent_num=robot_num, horizon= horizon)
 
     # return_list = multi_robot_utils_off_policy.train_V2DN_on_policy_multi_agent(env, mixer,agents, replay_buffers, num_episodes,
     #                                                                          batch_size,rho)
-    return_list = rf.train_V2DN_on_policy_multi_agent(env, mixer,agents,  num_episodes,
+    return_list = rf.train_resilient_on_policy_multi_agent(env, mixer,agents,  num_episodes,
                                                                               rho)
 
     episodes_list = list(range(len(return_list)))
