@@ -63,17 +63,9 @@ class V2DN_agent:
 
     def update(self,td_errors,transition_dict):
         observations = [torch.tensor(obs, dtype=torch.float).to(self.device) for obs in transition_dict['observations']]
-        # next_observations = [torch.tensor(next_obs, dtype=torch.float).to(self.device) for next_obs in
-        #                      transition_dict['next_observations']]
-
         actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
-        # rewards = torch.tensor(transition_dict['rewards'], dtype=torch.float).view(-1, 1).to(self.device)
-        # rewards_part2 = torch.tensor(transition_dict['rewards_part2'], dtype=torch.float).view(-1, 1).to(self.device)
-        # dones = torch.tensor(transition_dict['dones'], dtype=torch.float).view(-1, 1).to(self.device)
         valid_actions_list = transition_dict['action_num']
         action_masks = self.create_action_masks(self.action_dim, valid_actions_list, self.device)
-        # next_valid_actions_list = transition_dict['action_num']
-        # next_action_masks = self.create_action_masks(self.action_dim, next_valid_actions_list, self.device)
 
         q_values = self.q_net(observations, action_masks).gather(1, actions)  # Q值
         # # 下个状态的最大Q值
@@ -153,12 +145,6 @@ class VDN_On:
         
         td_errors = joint_target_q_value-joint_current
         td_errors = td_errors.detach()
-        # td_list = []
-        # for m in range (4):
-        #     td_list.append(td_errors)   
-
-        #print(td_errors,td_errors.shape,td_list)
-        # Calculate TD errors for individual agents
         ####add MSE in the future
         for a in alive_index:
         
@@ -168,31 +154,36 @@ class VDN_On:
             
 
 class V2DN:
-    def __init__(self,agents,gamma_2,agent_num):
+    def __init__(self,agents,gamma_2,agent_num, horizon):
         self.agents = agents
         self.gamma = gamma_2
         self.agent_num = agent_num
-    def learn(self, current_q_values, next_max_q_values,rewards, alive_index):
+        self.horizon = horizon
+    def pre_learn(self, current_q_values, next_max_q_values,rewards, alive_index,transition_dicts):
         # Get Q-values for the current state and action for all agents
-        joint_current = []
-        joint_next = []
-        team_reward = []
+        joint_current = torch.zeros(self.horizon,1)
+        joint_next = torch.zeros(self.horizon,1)
+        team_reward = torch.zeros(self.horizon,1)
+        current_q_values = torch.zeros(self.horizon,self.agent_num)
+        next_max_q_values = torch.zeros(self.horizon,self.agent_num)
+        rewards = torch.zeros(self.horizon,1)
         for i in alive_index:
-            # current_q_values[i],next_max_q_values[i],rewards = self.agents[i].output_agent(transition_dict)
-            joint_current += current_q_values[:,i:i+1]
-            joint_next += next_max_q_values[:,i:i+1]
-            team_reward += rewards[:,i:i+1]
-        print(joint_next) 
+            current_q_values[:,i:i+1],next_max_q_values[:,i:i+1],rewards[:,i:i+1] = self.agents[i].output_agent(transition_dicts[i])
+            joint_current = joint_current + current_q_values[:,i:i+1]
+            joint_next =joint_next +next_max_q_values[:,i:i+1]
+            team_reward =team_reward+ rewards[:,i:i+1]
+         
         # Compute the joint target Q-value using the team reward
         joint_target_q_value = team_reward + gamma * joint_next
-        td_errors = joint_target_q_value-joint_current
-        # Calculate TD errors for individual agents
-        ####add MSE in the future
-        for i in alive_index:
         
-            weights = (current_q_values[i]/(joint_current+1e-10))
+        td_errors = joint_target_q_value-joint_current
+        td_errors = td_errors.detach()
+        ####add MSE in the future
+        for a in alive_index:
+        
+            weights = (current_q_values[:,i:i+1]/(joint_current+1e-10))
             individual_td_error = weights*td_errors
-            self.agents[i].update(individual_td_error**2)
+            self.agents[a].update(individual_td_error,transition_dicts[a])
 
 
             
