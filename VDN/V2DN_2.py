@@ -5,6 +5,7 @@ import gym
 import numpy as np
 import collections
 from tqdm import tqdm
+import math
 import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
@@ -20,8 +21,9 @@ from ReplayBuffer import ReplayBuffer
 import R_Fac_train as rf 
 
 class Qnet(torch.nn.Module):
-    def __init__(self, obs_dim, hidden_dim, action_dim):
+    def __init__(self, obs_dim, hidden_dim, action_dim,device):
         super(Qnet, self).__init__()
+        self.device = device
         self.gru = torch.nn.GRU(input_size=obs_dim, hidden_size=hidden_dim, batch_first=True)
         self.fc1 = torch.nn.Linear(hidden_dim, hidden_dim)
         self.fc2 = torch.nn.Linear(hidden_dim, action_dim)
@@ -30,7 +32,8 @@ class Qnet(torch.nn.Module):
         lengths = torch.tensor([len(seq) for seq in x], dtype=torch.long)
         x = pad_sequence(x, batch_first=True)
         mask = torch.arange(x.size(1)).unsqueeze(0) < lengths.unsqueeze(1)
-        mask = mask.to(x.device)
+        mask = mask.to(x.cuda())
+        x = x.cuda()
         x, _ = self.gru(x)
         x = x * mask.unsqueeze(2).float()
         x = x[torch.arange(x.size(0)), lengths - 1]
@@ -43,8 +46,8 @@ class Agent:
     def __init__(self,obs_dim, hidden_dim, action_dim, learning_rate, gamma, epsilon, target_update, device):
         self.device = device
         self.action_dim = action_dim
-        self.q_net = Qnet(obs_dim, hidden_dim, action_dim).to(device)
-        self.target_q_net = Qnet(obs_dim, hidden_dim, action_dim).to(device)
+        self.q_net = Qnet(obs_dim, hidden_dim, action_dim,device).to(device)
+        self.target_q_net = Qnet(obs_dim, hidden_dim, action_dim,device).to(device)
         self.optimizer = torch.optim.Adam(self.q_net.parameters(), lr=learning_rate)
         self.gamma = gamma
         self.epsilon = epsilon
@@ -62,34 +65,43 @@ class Agent:
         return action
 
     def update(self,td_errors,transition_dict):
-        observations = [torch.tensor(obs, dtype=torch.float).to(self.device) for obs in transition_dict['observations']]
-        actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
-        valid_actions_list = transition_dict['action_num']
-        action_masks = self.create_action_masks(self.action_dim, valid_actions_list, self.device)
+        # observations = [torch.tensor(obs, dtype=torch.float).to(self.device) for obs in transition_dict['observations']]
+        # actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
+        # valid_actions_list = transition_dict['action_num']
+        # action_masks = self.create_action_masks(self.action_dim, valid_actions_list, self.device)
 
-        q_values = self.q_net(observations, action_masks).gather(1, actions)  # Q值
-        # # 下个状态的最大Q值
-        # # max_next_q_values = self.target_q_net(next_observations, next_action_masks).max(1)[0].view(
-        # #     -1, 1)
-        # q_values = torch.zeros(50,1).view(-1,1)
-        q_targets = (q_values.clone().detach() + td_errors).view(-1,1)  # TD误差目标
+        # q_values = self.q_net(observations, action_masks).gather(1, actions)  # Q值
+        # # # 下个状态的最大Q值
+        # # # max_next_q_values = self.target_q_net(next_observations, next_action_masks).max(1)[0].view(
+        # # #     -1, 1)
+        # # q_values = torch.zeros(50,1).view(-1,1)
+        # q_targets = (q_values.clone().detach() + td_errors.cuda()).view(-1,1)  # TD误差目标
         ##use TD error 
-        vdn_loss = torch.mean(F.mse_loss(q_values, q_targets))
+        #vdn_loss = torch.mean(F.mse_loss(q_values, q_targets))
+        vdn_loss = td_errors.cuda()
+        #td_errors.detach()
         vdn_loss = vdn_loss.item()
         #need to improve the code
         #vdn_loss = 0.05
         vdn_loss = torch.tensor(vdn_loss, requires_grad=True)
+        vdn_loss = vdn_loss.cuda()
         #print(dqn_loss.shape) # 均方误差损失函数
+        
+            # for i in range(len(vdn_loss)):
         self.optimizer.zero_grad()  # PyTorch中默认梯度会累积,这里需要显式将梯度置为0
-        torch.autograd.set_detect_anomaly(True)
-        vdn_loss.backward(retain_graph=True)  # 反向传播更新参数
-  
+        # torch.autograd.set_detect_anomaly(True)
+        # back_loss = vdn_loss
+        # back_loss = torch.tensor(back_loss,requires_grad=True)
+        vdn_loss.backward()  # 反向传播更新参数
+
         self.optimizer.step()
+                
 
         if self.count % self.target_update == 0:
             self.target_q_net.load_state_dict(
                 self.q_net.state_dict())  # 更新目标网络
         self.count += 1
+        #self.target_q_net.load_state_dict(self.q_net.state_dict())
     
     def output_agent(self,transition_dict):
         #wehther to add alive signal
@@ -193,31 +205,35 @@ class V2DN_pre:
         self.gamma = gamma_2
         self.agent_num = agent_num
         self.horizon = horizon
-    def pre_learn(self, current_q_values, next_max_q_values,rewards, alive_index,transition_dicts):
+    def learn(self, alive_index,transition_dicts):
         # Get Q-values for the current state and action for all agents
         joint_current = torch.zeros(self.horizon,1)
         joint_next = torch.zeros(self.horizon,1)
         team_reward = torch.zeros(self.horizon,1)
         current_q_values = torch.zeros(self.horizon,self.agent_num)
         next_max_q_values = torch.zeros(self.horizon,self.agent_num)
-        rewards = torch.zeros(self.horizon,1)
+        rewards = torch.zeros(self.horizon,self.agent_num)
         for i in alive_index:
             current_q_values[:,i:i+1],next_max_q_values[:,i:i+1],rewards[:,i:i+1] = self.agents[i].output_agent(transition_dicts[i])
-            joint_current = joint_current + current_q_values[:,i:i+1]
-            joint_next =joint_next +next_max_q_values[:,i:i+1]
+            joint_current = joint_current + torch.exp(current_q_values[:,i:i+1])
+            joint_next =joint_next + torch.exp(next_max_q_values[:,i:i+1])
             team_reward =team_reward+ rewards[:,i:i+1]
          
         # Compute the joint target Q-value using the team reward
-        joint_target_q_value = team_reward + gamma * joint_next
+        joint_target_q_value = team_reward + gamma * torch.log(joint_next)
+        joint_current_log = torch.log(joint_current)
         
-        td_errors = joint_target_q_value-joint_current
-        td_errors = td_errors.detach()
+        td_errors = -1*(joint_target_q_value-joint_current_log)
+        #print(torch.sum(td_errors))
+        #td_errors = td_errors.detach()
         ####add MSE in the future
         for a in alive_index:
         
-            weights = (current_q_values[:,i:i+1]/(joint_current+1e-10))
+            weights = (torch.exp(current_q_values[:,i:i+1])/(joint_current+1e-10))
             individual_td_error = weights*td_errors
-            self.agents[a].update(individual_td_error,transition_dicts[a])
+            #individual_td_error = td_errors
+            self.agents[a].update(torch.sum(individual_td_error),transition_dicts[a])
+        return torch.sum(-1*td_errors)
 
 class V2DN_dur:
     def __init__(self,agents,gamma_2,agent_num, horizon):
@@ -256,9 +272,9 @@ class V2DN_dur:
             
 
 if __name__ == "__main__":
-    lr = 1e-4
-    epsilon = 0.01
-    num_episodes = 100
+    lr = 5e-2
+    epsilon = 0.15
+    num_episodes = 80
     target_update = 2
     buffer_size = 60
     minimal_size = 30
@@ -268,8 +284,11 @@ if __name__ == "__main__":
 
     hidden_dim = 128
     gamma = 0.95
-    gamma_2 = 0.95
-    device = torch.device("cpu")
+    gamma_2 = 0.99
+    device = torch.device("cuda")
+    algo = "V2DN"
+    #algo = "VDN"
+    
 
     env_name = "MUSEUM"
     horizon = 60 if env_name =="MUSEUM" else 70
@@ -287,23 +306,25 @@ if __name__ == "__main__":
         agent = Agent(state_dim, hidden_dim, action_dim, lr, gamma, epsilon, target_update, device)
         agents.append(agent)
     
-    mixer = VDN_On_pre(agents,gamma_2,agent_num=robot_num, horizon= horizon)
+    #mixer = VDN_On_pre(agents,gamma_2,agent_num=robot_num, horizon= horizon)
+    mixer = V2DN_pre(agents,gamma_2,agent_num=robot_num, horizon= horizon)
 
     # return_list = multi_robot_utils_off_policy.train_V2DN_on_policy_multi_agent(env, mixer,agents, replay_buffers, num_episodes,
     #                                                                          batch_size,rho)
-    return_list = rf.train_resilient_on_policy_multi_agent(env, mixer,agents,  num_episodes,
+    return_list, td_list = rf.train_resilient_on_policy_multi_agent(env, mixer,agents,  num_episodes,
                                                                               rho)
 
     episodes_list = list(range(len(return_list)))
-    plt.plot(episodes_list, return_list)
+    #plt.plot(episodes_list, return_list)
+    plt.plot(td_list) 
     plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.title('Performance on {} with rho={}'.format(env_name,rho))
+    plt.ylabel('TD_error')
+    plt.title('Performance on {} with rho={} with {}'.format(env_name,rho,algo))
     plt.show()
-
-    # mv_return = rl_utils.moving_average(return_list, 101)
-    # plt.plot(episodes_list, mv_return)
-    # plt.xlabel('Episodes')
-    # plt.ylabel('Returns')
-    # plt.title('VPG on {}'.format(env_name))
-    # plt.show()
+    np.savetxt("td_list.txt",td_list)
+    mv_return = rl_utils.moving_average(td_list, 101)
+    plt.plot(mv_return)
+    plt.xlabel('Episodes')
+    plt.ylabel('average_td')
+    plt.title('VPG on {}'.format(env_name))
+    plt.show()
