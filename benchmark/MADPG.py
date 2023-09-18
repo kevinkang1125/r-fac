@@ -13,7 +13,7 @@ import sys
 sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/Environment')
 sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/Quality_Diversity')
 sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/RL_POMDP')
-import benchmark.rl_utils as rl_utils
+import rl_utils as rl_utils
 from gym_pqh_multi_target import gym_pqh
 from Target import TargetModel
 import multi_robot_utils_archive_4th
@@ -125,7 +125,7 @@ class MADPG:
 if __name__ == "__main__":
     actor_lr = 2e-5
     diversity_lr = 2e-5
-    num_episodes = 40000
+    num_episodes = 40
     hidden_dim = 128
     gamma = 0.95
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -144,9 +144,11 @@ if __name__ == "__main__":
         agent = MADPG(state_dim, hidden_dim, action_dim, actor_lr, gamma, device)
         agents.append(agent)
 
-    return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent_MADPG(env, agents, num_episodes)
+    #return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent_MADPG(env, agents, num_episodes)
+    return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent(env, agents, num_episodes)
 
     episodes_list = list(range(len(return_list)))
+    np.savetxt("MaDDPG",return_list)
     plt.plot(episodes_list, return_list)
     plt.xlabel('Episodes')
     plt.ylabel('Returns')
