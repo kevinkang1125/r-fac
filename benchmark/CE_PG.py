@@ -136,8 +136,8 @@ if __name__ == "__main__":
     actor_lr = 2e-5
     diversity_lr = 2e-5
     num_episodes = 40000
-    hidden_dim = 128
-    gamma = 0.95
+    hidden_dim = 128#256
+    gamma = 0.95#0.9
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     env_name = "MUSEUM"
