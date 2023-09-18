@@ -148,6 +148,7 @@ if __name__ == "__main__":
     return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent(env, agents, num_episodes, 3, diversity_net)
 
     episodes_list = list(range(len(return_list)))
+    np.savetxt("CE_PG",return_list)
     plt.plot(episodes_list, return_list)
     plt.xlabel('Episodes')
     plt.ylabel('Returns')
