@@ -121,12 +121,12 @@ class V2DN_pre:
         self.horizon = horizon
     def learn(self, alive_index,transition_dicts):
         # Get Q-values for the current state and action for all agents
-        joint_current = torch.zeros(self.horizon,1).cuda()
-        joint_next = torch.zeros(self.horizon,1).cuda()
+        joint_current = torch.zeros(self.horizon,requires_grad=True).cuda()
+        joint_next = torch.zeros(self.horizon,1,requires_grad=True).cuda()
         team_reward = torch.zeros(self.horizon,1).cuda()
-        current_q_values = torch.zeros(self.horizon,self.agent_num).cuda()
-        next_max_q_values = torch.zeros(self.horizon,self.agent_num).cuda()
-        rewards = torch.zeros(self.horizon,self.agent_num).cuda()
+        current_q_values = torch.zeros(self.horizon,self.agent_num,requires_grad=True).cuda()
+        next_max_q_values = torch.zeros(self.horizon,self.agent_num,requires_grad=True).cuda()
+        rewards = torch.zeros(self.horizon,self.agent_num,requires_grad=True).cuda()
         for i in alive_index:
             current_q_values[:,i:i+1],next_max_q_values[:,i:i+1],rewards[:,i:i+1] = self.agents[i].output_agent(transition_dicts[i])
             joint_current = joint_current + torch.exp(current_q_values[:,i:i+1])
@@ -144,6 +144,7 @@ class V2DN_pre:
             opt  = self.agents[i].opt()
             opt.zero_grad()
             optimizer_list.append(opt)
+        #td_error.requires_grad = True
         td_error.backward()
         for m in range(len(optimizer_list)):
             optimizer_list[m].step()
@@ -188,17 +189,18 @@ class V2DN_dur:
             
 
 if __name__ == "__main__":
-    lr = 5e-2
+    lr = 5e-4
     epsilon = 0.15
-    num_episodes = 80
+    num_episodes = 1000
     target_update = 2
-    iter = 15
+    iter = 10
      
     rho = 0.9
 
+    #hidden_dim = 128
     hidden_dim = 128
     gamma = 0.95
-    gamma_2 = 0.99
+    gamma_2 = 0.95
     device = torch.device("cuda")
     algo = "V2DN"
     #algo = "VDN"
@@ -210,7 +212,7 @@ if __name__ == "__main__":
     robot_num = 3
     target_model = TargetModel("MUSEUM_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
-    torch.manual_seed(0)
+    torch.manual_seed(2000)
     state_dim = env.position_embed
     action_dim = env.action_space
     agents = []
@@ -230,15 +232,31 @@ if __name__ == "__main__":
         agents[i].save('./on policy robot{} in teamsize{} with rho{} in {}.pth'.format(i,robot_num,rho,env_name))
     episodes_list = list(range(len(return_list)))
     #plt.plot(episodes_list, return_list)
-    plt.plot(td_list) 
+    
+    plt.subplot(221)
+    plt.plot(return_list) 
     plt.xlabel('Episodes')
+    plt.ylabel('team_reward')
+    plt.title('On-policy reward on {} with rho={} with {}'.format(env_name,rho,algo))
+    #plt.show()
+    plt.subplot(222)
+    plt.plot(td_list) 
+    plt.xlabel('Times')
     plt.ylabel('TD_error')
-    plt.title('Performance on {} with rho={} with {}'.format(env_name,rho,algo))
-    plt.show()
+    plt.title('On-policy TD_error on {} with rho={} with {}'.format(env_name,rho,algo))
+    #plt.show()
     np.savetxt("td_list.txt",td_list)
-    mv_return = rl_utils.moving_average(td_list, 101)
+    mv_return = rl_utils.moving_average(return_list, 101)
+    plt.subplot(223)
     plt.plot(mv_return)
     plt.xlabel('Episodes')
+    plt.ylabel('average_reward')
+    plt.title('On-policy average reward on {}'.format(env_name))
+    #plt.show()
+    mv_return = rl_utils.moving_average(td_list, 101)
+    plt.subplot(224)
+    plt.plot(mv_return)
+    plt.xlabel('Times')
     plt.ylabel('average_td')
-    plt.title('VPG on {}'.format(env_name))
+    plt.title('On-policy average TD-Error on {}'.format(env_name))
     plt.show()

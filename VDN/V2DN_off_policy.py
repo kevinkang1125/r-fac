@@ -123,12 +123,12 @@ class V2DN_pre:
         self.horizon = horizon
     def learn(self, alive_index,transition_dicts):
         # Get Q-values for the current state and action for all agents
-        joint_current = torch.zeros(self.horizon,1).cuda()
-        joint_next = torch.zeros(self.horizon,1).cuda()
+        joint_current = torch.zeros(self.horizon,requires_grad=True).cuda()
+        joint_next = torch.zeros(self.horizon,1,requires_grad=True).cuda()
         team_reward = torch.zeros(self.horizon,1).cuda()
-        current_q_values = torch.zeros(self.horizon,self.agent_num).cuda()
-        next_max_q_values = torch.zeros(self.horizon,self.agent_num).cuda()
-        rewards = torch.zeros(self.horizon,self.agent_num).cuda()
+        current_q_values = torch.zeros(self.horizon,self.agent_num,requires_grad=True).cuda()
+        next_max_q_values = torch.zeros(self.horizon,self.agent_num,requires_grad=True).cuda()
+        rewards = torch.zeros(self.horizon,self.agent_num,requires_grad=True).cuda()
         for i in alive_index:
             current_q_values[:,i:i+1],next_max_q_values[:,i:i+1],rewards[:,i:i+1] = self.agents[i].output_agent(transition_dicts[i])
             joint_current = joint_current + torch.exp(current_q_values[:,i:i+1])
@@ -187,9 +187,9 @@ class V2DN_dur:
             
 
 if __name__ == "__main__":
-    lr = 1e-3
+    lr = 1e-4
     epsilon = 0.15
-    num_episodes = 10
+    num_episodes = 1000
     target_update = 5
     buffer_size = 1000
     minimal_size = 512
@@ -232,16 +232,30 @@ if __name__ == "__main__":
         agents[i].save('./off policy robot{} in teamsize{} with rho{} in {}.pth'.format(i,robot_num,rho,env_name))
 
     episodes_list = list(range(len(return_list)))
-    plt.plot(episodes_list, return_list)
-    #plt.plot(td_list) 
+    plt.subplot(221)
+    plt.plot(return_list) 
     plt.xlabel('Episodes')
+    plt.ylabel('team_reward')
+    plt.title('On-policy reward on {} with rho={} with {}'.format(env_name,rho,algo))
+    #plt.show()
+    plt.subplot(222)
+    plt.plot(td_list) 
+    plt.xlabel('times')
     plt.ylabel('TD_error')
-    plt.title('Performance on {} with rho={} with {}'.format(env_name,rho,algo))
-    plt.show()
+    plt.title('On-policy TD_error on {} with rho={} with {}'.format(env_name,rho,algo))
+    #plt.show()
     np.savetxt("td_list.txt",td_list)
     mv_return = rl_utils.moving_average(return_list, 101)
+    plt.subplot(223)
     plt.plot(mv_return)
     plt.xlabel('Episodes')
+    plt.ylabel('average_reward')
+    plt.title('On-policy average reward on {}'.format(env_name))
+    #plt.show()
+    mv_return = rl_utils.moving_average(td_list, 101)
+    plt.subplot(224)
+    plt.plot(mv_return)
+    plt.xlabel('times')
     plt.ylabel('average_td')
-    plt.title('VPG on {}'.format(env_name))
+    plt.title('On-policy average TD-Error on {}'.format(env_name))
     plt.show()
