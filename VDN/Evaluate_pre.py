@@ -85,63 +85,93 @@ class Agent:
         self.q_net.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
  
 
-    # def train_resilient_on_policy_multi_agent(env, mixer, agents, num_episodes, rho,iter):
-    #     return_multi_list = []
-    #     td_list = []
-    #     epoch_num = 10
-    #     #epsilon = 0.1
-    #     for i in range(epoch_num):
-    #         with tqdm(total=int(num_episodes / epoch_num), desc='Iteration %d' % i) as pbar:
-    #             for i_episode in range(int(num_episodes / epoch_num)):
-    #                 episode_return,alive_index,trainsition_dicts = faulty_sampling_pre(env, agents,rho)
-    #                 return_multi_list.append(episode_return)
-    #                 #td_error = central_train_on_policy_pre(mixer, trainsition_dicts,alive_index,iter)
-    #                 #td_list.extend(td_error)
-    #                 if (i_episode + 1) % 10 == 0:
-    #                     pbar.set_postfix({'episode': '%d' % (num_episodes / epoch_num * i + i_episode + 1),
-    #                                     'return': '%.3f' % np.mean(return_multi_list[-10:])})
-    #                 pbar.update(1)
-    #     return return_multi_list,td_list
-    
-    def faulty_sampling_pre(env, agents, rho):
-        episode_return = 0.0
-        agent_num = len(agents)
-        transition_dicts = [{'observations': [], 'actions': [], 'next_states': [], 'next_observations': [], 'rewards': [], 'rewards_part2': [],
-                            'dones': [], 'action_num': []} for _ in range(agent_num)]
-        alive_list = []
-        ##faulty sample
-        for i in range(agent_num):
-            if np.random.random() < rho:
-                alive_list.append(i)
-            
-        ##change into index
-        num_dicts = alive_list
-        observations, states, action_nums = env.reset()
-        counter = 0
-        while counter < 70:
-            # obs_list = env.observation_list
-            for i in (num_dicts):
-                transition_dict = transition_dicts[i]
-                if counter == 0:
-                    obs = observations[i]
-                else:
-                    obs = transition_dict['next_observations'][-1]
-                agent = agents[i]
-                action_num = action_nums[i]
-                action = agent.take_action(obs, action_num)
-                transition_dict['action_num'].append(action_num)
-                next_obs, next_state, reward, done, action_num = env.step(action, i)
-                action_nums[i] = action_num
-                transition_dict['observations'].append(obs)
-                transition_dict['actions'].append(action)
-                transition_dict['next_observations'].append(next_obs)
-                transition_dict['next_states'].append(next_state)
-                transition_dict['rewards'].append(reward)
-                #transition_dict['rewards_part2'].append(reward_part2)
-                transition_dict['dones'].append(done)
-                episode_return += reward
-            counter += 1
-        return episode_return,alive_list,transition_dicts
+class CEPG_Agent:
+    ''' Vanilla Policy Gradient (REINFORCE) algorithm '''
+    def __init__(self, obs_dim, hidden_dim, action_dim, device,path):
+        self.device = device
+        self.action_dim = action_dim
+        self.actor = torch.load(path)
+        #self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
+        self.device = device
+
+    def take_action(self, obs, action_num):
+
+        obs = [obs]
+        action_mask = self.create_action_mask(self.action_dim,action_num)
+        action_mask = torch.tensor(action_mask, dtype=torch.bool).to(self.device)
+        # print("obs:",obs)
+        probs = self.actor(obs, action_mask)
+        # print("probs", probs)
+        # print("Max value in tensor: {:.2f}".format(max_probs.item()))
+        action_dist = torch.distributions.Categorical(probs)
+        # print("action_dist:", action_dist)
+        action = action_dist.sample()
+        # print("action:", action)
+        # print("action.item:",action.item())
+        return action.item()
+
+    def compute_returns(self, gamma, rewards, rewards_part2, dones):
+        n = len(rewards)
+        returns = torch.zeros(n, 1)
+        next_return = 0
+        for t in reversed(range(n)):
+            next_return = rewards[t] + gamma * next_return * (1 - dones[t])
+            returns[t] = next_return + rewards_part2[t]
+        return returns
+
+    def get_probs(self, transition_dict):
+        observations = [torch.tensor(obs, dtype=torch.float).to(self.device) for obs in transition_dict['observations']]
+        actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
+        valid_actions_list = transition_dict['action_num']
+        action_masks = self.create_action_masks(self.action_dim, valid_actions_list, self.device)
+        with torch.no_grad():
+            probs = self.actor(observations, action_masks).gather(1, actions)
+        return probs
+
+    # def update(self, transition_dict):
+    #     observations = [torch.tensor(obs, dtype=torch.float).to(self.device) for obs in transition_dict['observations']]
+    #     actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
+    #     rewards = torch.tensor(transition_dict['rewards'], dtype=torch.float).view(-1, 1).to(self.device)
+    #     rewards_part2 = torch.tensor(transition_dict['rewards_part2'], dtype=torch.float).view(-1, 1).to(self.device)
+    #     dones = torch.tensor(transition_dict['dones'], dtype=torch.float).view(-1, 1).to(self.device)
+    #     valid_actions_list = transition_dict['action_num']
+    #     returns = self.compute_returns(self.gamma, rewards.cpu(), rewards_part2.cpu(), dones.cpu()).to(self.device)
+    #     cross_probs = transition_dict['cross_probs']
+    #     # print('Returns:', returns)
+    #     # action_masks = self.create_action_masks(action_dim, valid_actions_list, self.device)
+    #     # action_masks = [torch.tensor(action_mask, dtype=torch.bool).to(self.device) for action_mask in action_masks]
+    #     action_masks = self.create_action_masks(self.action_dim, valid_actions_list, self.device)
+    #     # print("rewards:",rewards.view(-1))
+    #     # print("rewards_part2:",rewards_part2.view(-1))
+    #     # print("dones:", dones)
+    #     # log_probs = torch.log(self.actor(observations, action_masks).gather(1, actions))
+    #     min_log_prob = -2.303
+    #     max_log_prob = -0.105
+    #     log_probs = torch.clamp(torch.log(self.actor(observations, action_masks).gather(1, actions)), min_log_prob,
+    #                             max_log_prob)
+    #     actor_loss = -torch.mean(log_probs * returns)
+    #     cross_loss = torch.mean(log_probs * cross_probs)
+    #     loss = actor_loss + self.beta * cross_loss
+    #     # print("calculate:", log_probs * returns)
+    #     # print("actor_loss:", actor_loss)
+    #     self.actor_optimizer.zero_grad()
+    #     loss.backward()
+    #     self.actor_optimizer.step()
+
+    def create_action_mask(self, total_actions, valid_actions):
+        action_mask = [False] * valid_actions + [True] * (total_actions - valid_actions)
+        return action_mask
+
+    def create_action_masks(self, total_actions, valid_actions_list, device):
+        action_masks = []
+        for valid_actions in valid_actions_list:
+            action_mask = [False] * valid_actions + [True] * (total_actions - valid_actions)
+            action_masks.append(action_mask)
+        action_masks_tensor = torch.tensor(action_masks, dtype=torch.bool).to(device)
+        return action_masks_tensor
+
+    def clamp(self, x, min_val, max_val):
+        return max(min(x, max_val), min_val)
 
 if __name__ == "__main__":
     lr = 5e-2
@@ -149,7 +179,7 @@ if __name__ == "__main__":
     num_episodes = 80
     target_update = 2
     iter = 15
-    test_steps = 50
+    test_steps = 100
     rho = 0.9
 
     hidden_dim = 128
@@ -172,12 +202,17 @@ if __name__ == "__main__":
     action_dim = env.action_space
     agents = []
 
+    # for i in range(robot_num):
+    #     agent = Agent(state_dim, hidden_dim, action_dim, lr, gamma, epsilon, target_update, device)
+    #     agents.append(agent)
+    
     for i in range(robot_num):
-        agent = Agent(state_dim, hidden_dim, action_dim, lr, gamma, epsilon, target_update, device)
+        path = "./Benchmark_models/CE_PG/MUSEUM_CEPG_R{}_R{}.pth".format(robot_num,i)
+        agent = CEPG_Agent(state_dim, hidden_dim, action_dim, device, path)
         agents.append(agent)
 
-    for i in range(robot_num):
-        agents[i].load('./on policy robot{} in teamsize{} with rho{} in {}.pth'.format(i,robot_num,rho,env_name))
+    # for i in range(robot_num):
+    #     agents[i].load('./off policy robot{} in teamsize{} with rho{} in {}.pth'.format(i,robot_num,rho,env_name))
         #agents[i].load('./off policy robot{} in teamsize{} with rho{} in {}.pth'.format(i,robot_num,rho,env_name))
 
     for iteration in range(iter):
