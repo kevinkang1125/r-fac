@@ -64,7 +64,7 @@ class gym_pqh:
 
     def reset(self):
         # print("reward_list", self.)
-        print("trajectory_list", self.trajectory_list)
+       # print("trajectory_list", self.trajectory_list)
         # print("reward_list",self.reward_list)
         self.robot_position_list = copy.copy(self.robot_position_initial_list)
         self.reward_list = copy.deepcopy(self.reward_initial_list)
