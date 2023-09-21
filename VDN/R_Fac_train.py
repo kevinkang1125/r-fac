@@ -33,9 +33,9 @@ def train_resilient_on_policy_multi_agent_dur(env, mixer, agents, num_episodes,r
     for i in range(epoch_num):
         with tqdm(total=int(num_episodes / epoch_num), desc='Iteration %d' % i) as pbar:
             for i_episode in range(int(num_episodes / epoch_num)):
-                episode_return,alive_index,trainsition_dicts = faulty_sampling_during(env, agents,rho_list)
+                episode_return,alive_lists,trainsition_dicts = faulty_sampling_during(env, agents,rho_list)
                 return_multi_list.append(episode_return)
-                td_error = central_train_on_policy_dur(mixer, trainsition_dicts,alive_index,iter)
+                td_error = central_train_on_policy_dur(mixer, trainsition_dicts,alive_lists,iter)
                 td_list.extend(td_error)
                 if (i_episode + 1) % 10 == 0:
                     pbar.set_postfix({'episode': '%d' % (num_episodes / epoch_num * i + i_episode + 1),
@@ -91,21 +91,14 @@ def faulty_sampling_during(env, agents, rho_list):
     alive_lists = []
     alive_index = []
     for m in range(agent_num):
-        alive_index.append(i)
-    ##faulty sample
-    # for i in range(agent_num):
-    #     if np.random.random() < rho:
-    #         alive_list.append(i)
-        
-    ##change into index
-    #num_dicts = alive_index
+        alive_index.append(m)
     observations, states, action_nums = env.reset()
     horizon = 70 if env.env_name =="MUSEUM" else 60 if env.env_name == "OFFICE" else None
     counter = 0
     while counter < horizon:
         if counter in rho_list:
-            random.shuffle(alive_index)
-            alive_index.pop
+            robot = random.choice(alive_index)
+            alive_index.remove(robot)
 
         # obs_list = env.observation_list
         for i in (alive_index):
@@ -129,7 +122,7 @@ def faulty_sampling_during(env, agents, rho_list):
             transition_dict['dones'].append(done)
             episode_return += reward
         counter += 1
-        alive_lists.append(alive_index)
+        alive_lists.append(alive_index.copy())
     return episode_return,alive_lists,transition_dicts
 
 def central_train_on_policy_pre(mixer,transition_dicts,alive_index,iter):
@@ -139,11 +132,14 @@ def central_train_on_policy_pre(mixer,transition_dicts,alive_index,iter):
         td_list.append(td_error.item())
     return td_list
 
-def central_train_on_policy_dur(mixer,transition_dicts,alive_list):
+def central_train_on_policy_dur(mixer,transition_dicts,alive_list,iter):
+    td_list = []
     if len(alive_list) <= 10:
         print("Wrong Usage of During Execution Mixer")
     else:
-        td_error = mixer.learn(alive_list,transition_dicts)
-    return td_error
+        for m in range (iter):
+            td_error = mixer.learn(alive_list,transition_dicts)
+            td_list.append(td_error.item())
+    return td_list
       
     
