@@ -158,7 +158,7 @@ class V2DN_dur:
         self.gamma = gamma_2
         self.agent_num = agent_num
         self.horizon = horizon
-    def pre_learn(self, current_q_values, next_max_q_values,rewards, alive_index,transition_dicts):
+    def learn(self, alive_list,transition_dicts):
         # Get Q-values for the current state and action for all agents
         joint_current = torch.zeros(self.horizon,1)
         joint_next = torch.zeros(self.horizon,1)
@@ -166,24 +166,65 @@ class V2DN_dur:
         current_q_values = torch.zeros(self.horizon,self.agent_num)
         next_max_q_values = torch.zeros(self.horizon,self.agent_num)
         rewards = torch.zeros(self.horizon,1)
-        for i in alive_index:
-            current_q_values[:,i:i+1],next_max_q_values[:,i:i+1],rewards[:,i:i+1] = self.agents[i].output_agent(transition_dicts[i])
-            joint_current = joint_current + current_q_values[:,i:i+1]
-            joint_next =joint_next +next_max_q_values[:,i:i+1]
-            team_reward =team_reward+ rewards[:,i:i+1]
+        for i in range(self.agent_num):
+            ep_len = len(transition_dicts[i]["rewards"])
+            current_q_values[0:ep_len,i:i+1],next_max_q_values[0:ep_len,i:i+1],rewards[0:ep_len,i:i+1] = self.agents[i].output_agent(transition_dicts[i])
+            joint_current[0:ep_len] = joint_current[0:ep_len] + torch.exp(current_q_values[0:ep_len,i:i+1])
+            joint_next[0:ep_len] =joint_next[0:ep_len] + torch.exp(next_max_q_values[0:ep_len,i:i+1])
+            team_reward[0:ep_len] =team_reward[0:ep_len]+ rewards[0:ep_len,i:i+1]
          
         # Compute the joint target Q-value using the team reward
-        joint_target_q_value = team_reward + gamma * joint_next
+        # Compute the joint target Q-value using the team reward
+        joint_target_q_value = team_reward + gamma * torch.log(joint_next)
+        joint_current_log = torch.log(joint_current)
         
-        td_errors = joint_target_q_value-joint_current
-        td_errors = td_errors.detach()
-        print(td_errors)
-        ####add MSE in the future
-        for a in alive_index:
+        td_error = joint_target_q_value-joint_current_log
+        td_error = torch.sum(td_error.pow(2))+1e-5
+        optimizer_list = []
+        for i in range(self.agent_num):
+            opt  = self.agents[i].opt()
+            opt.zero_grad()
+            optimizer_list.append(opt)
+        #td_error.requires_grad = True
+        td_error.backward()
+        for m in range(len(optimizer_list)):
+            optimizer_list[m].step()
+        for a in range(self.agent_num):
+            self.agents[a].update()
+        return td_error
+    def learn_v2(self, alive_list,transition_dicts):
+        joint_current = torch.zeros(self.horizon,1)
+        joint_next = torch.zeros(self.horizon,1)
+        team_reward = torch.zeros(self.horizon,1)
+        current_q_values = torch.zeros(self.horizon,self.agent_num)
+        next_max_q_values = torch.zeros(self.horizon,self.agent_num)
+        rewards = torch.zeros(self.horizon,1)
+        for i in range(self.agent_num):
+            ep_len = len(transition_dicts[i]["rewards"])
+            current_q_values[0:ep_len,i:i+1],next_max_q_values[0:ep_len,i:i+1],rewards[0:ep_len,i:i+1] = self.agents[i].output_agent(transition_dicts[i])
+            joint_current[0:ep_len] = joint_current[0:ep_len] + torch.exp(current_q_values[0:ep_len,i:i+1])
+            joint_next[0:ep_len] =joint_next[0:ep_len] + torch.exp(next_max_q_values[0:ep_len,i:i+1])
+            team_reward[0:ep_len] =team_reward[0:ep_len]+ rewards[0:ep_len,i:i+1]
+         
+        # Compute the joint target Q-value using the team reward
+        # Compute the joint target Q-value using the team reward
+        joint_target_q_value = team_reward + gamma * torch.log(joint_next)
+        joint_current_log = torch.log(joint_current)
         
-            weights = (current_q_values[:,i:i+1]/(joint_current+1e-10))
-            individual_td_error = weights*td_errors
-            self.agents[a].update(individual_td_error,transition_dicts[a])
+        td_error = joint_target_q_value-joint_current_log
+        td_error = torch.sum(td_error.pow(2))+1e-5
+        optimizer_list = []
+        for i in range(self.agent_num):
+            opt  = self.agents[i].opt()
+            opt.zero_grad()
+            optimizer_list.append(opt)
+        #td_error.requires_grad = True
+        td_error.backward()
+        for m in range(len(optimizer_list)):
+            optimizer_list[m].step()
+        for a in range(self.agent_num):
+            self.agents[a].update()
+        return td_error
 
 
             
