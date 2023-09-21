@@ -24,6 +24,23 @@ def train_on_policy_multi_agent(env, agents, num_episodes, per_episodes, diveris
                 pbar.update(1)
     return return_multi_list
 
+def train_on_policy_multi_agent_MADPG(env, agents, num_episodes):
+    return_multi_list = []
+    epoch_num = 10
+    epsilon = 0.1
+    for i in range(epoch_num):
+        with tqdm(total=int(num_episodes / epoch_num ), desc='Iteration %d' % i) as pbar:
+            for i_episode in range(int(num_episodes/epoch_num)):
+                episode_return = each_epoch_train_on_policy_agent(env, agents, epsilon/(i+1))
+                return_multi_list.append(episode_return)
+                # if i_episode % per_episodes == 0 and i_episode != 0:
+                #     each_epoch_on_policy_diversity(env, diveristy_net, agents, epsilon/(i+1))
+                if (i_episode + 1) % 10 == 0:
+                    pbar.set_postfix({'episode': '%d' % (num_episodes / epoch_num * i + i_episode + 1),
+                                      'return': '%.3f' % np.mean(return_multi_list[-10:])})
+                pbar.update(1)
+    return return_multi_list
+
 def each_epoch_on_policy_diversity(env, diversity_net, agents, epsilon):
     print("training based on robot diversity")
     episode_return = 0

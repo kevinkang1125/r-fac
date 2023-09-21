@@ -29,8 +29,9 @@ class Qnet(torch.nn.Module):
         lengths = torch.tensor([len(seq) for seq in x], dtype=torch.long)
         x = pad_sequence(x, batch_first=True)
         mask = torch.arange(x.size(1)).unsqueeze(0) < lengths.unsqueeze(1)
-        mask = mask.to(x.device)
-        x, _ = self.gru(x)
+        mask = mask.to(x.cuda())
+        x, _ = self.gru(x.cuda())
+        x = x.cuda()
         x = x * mask.unsqueeze(2).float()
         # print("x before lengths - 1:", x)
         x = x[torch.arange(x.size(0)), lengths - 1]
@@ -112,7 +113,7 @@ class DQN:
         return action_masks_tensor
 if __name__ == "__main__":
     lr = 1e-4
-    epsilon = 0.01
+    epsilon = 0.2
     num_episodes = 20000
     target_update = 10
     buffer_size = 1000
@@ -122,7 +123,7 @@ if __name__ == "__main__":
     hidden_dim = 128
     gamma = 0.95
     # device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    device = torch.device("cpu")
+    device = torch.device("cuda")
     env_name = "MUSEUM"
     mode_name = "random"
     robot_num = 3
@@ -142,6 +143,11 @@ if __name__ == "__main__":
 
     return_list = multi_robot_utils_off_policy.train_off_policy_multi_agent(env, agents, replay_buffers, num_episodes,
                                                                             minimal_size, batch_size)
+    
+    for h in range(len(agents)):
+        env_name = env.env_name
+        net_name = "./Benchmark_models/DQN/" + env_name + "_DQN_R" + str(len(agents)) + "_R" + str(h)
+        torch.save(agents[h].q_net, net_name + '.pth')
 
     episodes_list = list(range(len(return_list)))
     np.savetxt("DQN_reward",return_list)

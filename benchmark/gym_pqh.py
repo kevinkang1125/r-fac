@@ -15,12 +15,12 @@ class gym_pqh:
         self.embedding_layer = EmbeddingLayer(self.total_position+1, self.position_embed, 0)
         self.mode_num = mode_name
         self.robot_num = robot_num
-        self.robot_initial_position = 28
+        self.robot_initial_position = 28 if env_name == "MUSEUM" else 43 if env_name == "OFFICE" else None
         self.robot_initial_actionNum_set = [self.map.next_total_action(self.robot_initial_position) for _ in range(robot_num)]
         self.robot_position_initial_list = [self.robot_initial_position for _ in range(robot_num)]
-        self.target_initial_position = 66
+        self.target_initial_position = 66 if env_name == "MUSEUM" else 48 if env_name == "OFFICE" else None
         # *********************************************随机3启动************************************************************：
-        self.target_random_initial_set = [61, 66, 67, 68, 69]
+        self.target_random_initial_set = [61, 66, 67, 68, 69] if env_name == "MUSEUM" else [47,48,54,55,59] if env_name == "OFFICE" else None
         # ************************************************************************************************************************
         self.trajectory_initial_list = [[self.robot_initial_position] for _ in range(robot_num)]
         self.reward_initial_list = [[] for _ in range(robot_num)]
@@ -64,7 +64,7 @@ class gym_pqh:
 
     def reset(self):
         # print("reward_list", self.)
-        print("trajectory_list", self.trajectory_list)
+       # print("trajectory_list", self.trajectory_list)
         # print("reward_list",self.reward_list)
         self.robot_position_list = copy.copy(self.robot_position_initial_list)
         self.reward_list = copy.deepcopy(self.reward_initial_list)

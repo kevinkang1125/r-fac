@@ -147,6 +147,10 @@ if __name__ == "__main__":
 
     return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent_MADPG(env, agents, num_episodes)
     #return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent(env, agents, num_episodes)
+    for h in range(len(agents)):
+        env_name = env.env_name
+        net_name = "benchmark_save_model/" + env_name + "_MADDPG_R" + str(len(agents)) + "_R" + str(h)
+        torch.save(agents[h].q_net, net_name + '.pth')
 
     episodes_list = list(range(len(return_list)))
     np.savetxt("MaDDPG",return_list)
