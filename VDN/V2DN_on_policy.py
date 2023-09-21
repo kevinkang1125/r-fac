@@ -131,10 +131,10 @@ class V2DN_pre:
             current_q_values[:,i:i+1],next_max_q_values[:,i:i+1],rewards[:,i:i+1] = self.agents[i].output_agent(transition_dicts[i])
             joint_current = joint_current + torch.exp(current_q_values[:,i:i+1])
             joint_next =joint_next + torch.exp(next_max_q_values[:,i:i+1])
-            team_reward =team_reward+ rewards[:,i:i+1]
+            team_reward =team_reward+ torch.exp(rewards[:,i:i+1])
          
         # Compute the joint target Q-value using the team reward
-        joint_target_q_value = team_reward + gamma * torch.log(joint_next)
+        joint_target_q_value = torch.log(team_reward) + gamma * torch.log(joint_next)
         joint_current_log = torch.log(joint_current)
         
         td_error = joint_target_q_value-joint_current_log
@@ -206,13 +206,14 @@ if __name__ == "__main__":
     #algo = "VDN"
     
 
-    env_name = "MUSEUM"
+    #env_name = "MUSEUM"
+    env_name = "OFFICE"
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
     robot_num = 3
     target_model = TargetModel("MUSEUM_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
-    torch.manual_seed(2000)
+    torch.manual_seed(0)
     state_dim = env.position_embed
     action_dim = env.action_space
     agents = []

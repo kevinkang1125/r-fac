@@ -141,7 +141,7 @@ if __name__ == "__main__":
     target_update = 2
     iter = 100
     test_steps = 100
-    rho = 0.9
+    rho = 0.8
     beta = 0.5
     epoch = 10
 
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     robot_num = 3
     target_model = TargetModel("MUSEUM_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
-    torch.manual_seed(0)
+    torch.manual_seed(2000000)
     state_dim = env.position_embed
     action_dim = env.action_space
     agents = []
@@ -192,6 +192,9 @@ if __name__ == "__main__":
             for i in range(agent_num):
                 if np.random.random() < rho:
                     alive_list.append(i)
+            if len(alive_list)== 0:
+                team_done = True
+                counter = 100
             observations, states, action_nums = env.reset()
             counter = 0
             while not team_done:
@@ -228,7 +231,7 @@ if __name__ == "__main__":
 
         print(record_list,capture_list,sum(capture_list)/len(capture_list))
         epoch_list.append(sum(capture_list)/len(capture_list))
-    print(epoch_list)
+    print(epoch_list,sum(epoch_list)/len(epoch_list))
     #print(capture_list)
 
 

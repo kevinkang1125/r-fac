@@ -36,12 +36,12 @@ def faulty_sampling_pre(env, agents, rho):
     for i in range(agent_num):
         if np.random.random() < rho:
             alive_list.append(i)
-        
+    horizon = 70 if env.env_name =="MUSEUM" else 60 if env.env_name == "OFFICE" else None   
     ##change into index
     num_dicts = alive_list
     observations, states, action_nums = env.reset()
     counter = 0
-    while counter < 70:
+    while counter < horizon:
         # obs_list = env.observation_list
         for i in (num_dicts):
             transition_dict = transition_dicts[i]
