@@ -160,16 +160,16 @@ class V2DN_dur:
         self.horizon = horizon
     def learn(self, alive_list,transition_dicts):
         # Get Q-values for the current state and action for all agents
-        joint_current = torch.zeros(self.horizon,1)
-        joint_next = torch.zeros(self.horizon,1)
-        team_reward = torch.zeros(self.horizon,1)
-        current_q_values = torch.zeros(self.horizon,self.agent_num)
-        next_max_q_values = torch.zeros(self.horizon,self.agent_num)
-        rewards = torch.zeros(self.horizon,1)
+        joint_current = torch.zeros(self.horizon,requires_grad=True).cuda()
+        joint_next = torch.zeros(self.horizon,1,requires_grad=True).cuda()
+        team_reward = torch.zeros(self.horizon,1).cuda()
+        current_q_values = torch.zeros(self.horizon,self.agent_num,requires_grad=True).cuda()
+        next_max_q_values = torch.zeros(self.horizon,self.agent_num,requires_grad=True).cuda()
+        rewards = torch.zeros(self.horizon,self.agent_num,requires_grad=True).cuda()
         for i in range(self.agent_num):
             ep_len = len(transition_dicts[i]["rewards"])
             current_q_values[0:ep_len,i:i+1],next_max_q_values[0:ep_len,i:i+1],rewards[0:ep_len,i:i+1] = self.agents[i].output_agent(transition_dicts[i])
-            joint_current[0:ep_len] = joint_current[0:ep_len] + torch.exp(current_q_values[0:ep_len,i:i+1])
+            joint_current[0:ep_len] = joint_current[0:ep_len] + torch.exp(current_q_values[0:ep_len,i:i+1].squeeze())
             joint_next[0:ep_len] =joint_next[0:ep_len] + torch.exp(next_max_q_values[0:ep_len,i:i+1])
             team_reward[0:ep_len] =team_reward[0:ep_len]+ rewards[0:ep_len,i:i+1]
          
@@ -192,6 +192,7 @@ class V2DN_dur:
         for a in range(self.agent_num):
             self.agents[a].update()
         return td_error
+    
     def learn_v2(self, alive_list,transition_dicts):
         joint_current = torch.zeros(self.horizon,1)
         joint_next = torch.zeros(self.horizon,1)
@@ -232,11 +233,12 @@ class V2DN_dur:
 if __name__ == "__main__":
     lr = 5e-4
     epsilon = 0.15
-    num_episodes = 1000
+    num_episodes = 10
     target_update = 2
     iter = 10
      
     rho = 0.9
+    rho_list = [5,10]
 
     #hidden_dim = 128
     hidden_dim = 128
@@ -248,7 +250,7 @@ if __name__ == "__main__":
     
 
     #env_name = "MUSEUM"
-    env_name = "OFFICE"
+    env_name = "MUSEUM"
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
     robot_num = 3
@@ -264,12 +266,13 @@ if __name__ == "__main__":
         agent = Agent(state_dim, hidden_dim, action_dim, lr, gamma, epsilon, target_update, device)
         agents.append(agent)
     
-    #mixer = VDN_On_pre(agents,gamma_2,agent_num=robot_num, horizon= horizon)
-    mixer = V2DN_pre(agents,gamma_2,agent_num=robot_num, horizon= horizon)
+
+    #mixer = V2DN_pre(agents,gamma_2,agent_num=robot_num, horizon= horizon)
+    mixer = V2DN_dur(agents,gamma_2,agent_num=robot_num, horizon= horizon)
 
     # return_list = multi_robot_utils_off_policy.train_V2DN_on_policy_multi_agent(env, mixer,agents, replay_buffers, num_episodes,
     #                                                                          batch_size,rho)
-    return_list, td_list = rf.train_resilient_on_policy_multi_agent(env, mixer, agents, num_episodes, rho, iter)
+    return_list, td_list = rf.train_resilient_on_policy_multi_agent_dur(env, mixer, agents, num_episodes, rho_list, iter)
     for i in range(robot_num):
         agents[i].save('./on policy robot{} in teamsize{} with rho{} in {}.pth'.format(i,robot_num,rho,env_name))
     episodes_list = list(range(len(return_list)))
