@@ -7,10 +7,10 @@ import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from torch.nn.utils.rnn import pad_sequence
-from Efficient_Search.RL_POMDP import rl_utils
-from Efficient_Search.Environment.gym_pqh_multi_target import gym_pqh
-from Efficient_Search.Environment.Target import TargetModel
-from Efficient_Search.Quality_Diversity import multi_robot_utils_off_policy
+import rl_utils
+from gym_pqh_multi_target import gym_pqh
+from Target import TargetModel
+import multi_robot_utils_off_policy as multi_robot_utils_off_policy
 from ReplayBuffer import ReplayBuffer
 
 class D_Qnet(torch.nn.Module):
@@ -183,8 +183,8 @@ if __name__ == "__main__":
 
     hidden_dim = 256
     gamma = 0.9
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
+    #device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cpu")
     algorithm_name = "DRL"
     env_name = "MUSEUM"
     mode_name = "random"

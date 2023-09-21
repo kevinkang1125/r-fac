@@ -29,7 +29,8 @@ class PolicyNet(torch.nn.Module):
         lengths = torch.tensor([len(seq) for seq in x], dtype=torch.long)
         x = pad_sequence(x, batch_first=True)
         mask = torch.arange(x.size(1)).unsqueeze(0) < lengths.unsqueeze(1)
-        mask = mask.to(x.device)
+        mask = mask.to(x.cuda())
+        x = x.cuda()
         x, _ = self.gru(x)
         x = x * mask.unsqueeze(2).float()
         # print("x before lengths - 1:", x)
@@ -126,7 +127,7 @@ if __name__ == "__main__":
     actor_lr = 2e-5
     diversity_lr = 2e-5
     num_episodes = 40
-    hidden_dim = 128
+    hidden_dim = 256
     gamma = 0.95
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
@@ -144,8 +145,8 @@ if __name__ == "__main__":
         agent = MADPG(state_dim, hidden_dim, action_dim, actor_lr, gamma, device)
         agents.append(agent)
 
-    #return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent_MADPG(env, agents, num_episodes)
-    return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent(env, agents, num_episodes)
+    return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent_MADPG(env, agents, num_episodes)
+    #return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent(env, agents, num_episodes)
 
     episodes_list = list(range(len(return_list)))
     np.savetxt("MaDDPG",return_list)
