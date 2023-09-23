@@ -126,15 +126,15 @@ class MADPG:
 if __name__ == "__main__":
     actor_lr = 2e-5
     diversity_lr = 2e-5
-    num_episodes = 40
+    num_episodes = 20000
     hidden_dim = 256
     gamma = 0.95
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cuda")
 
-    env_name = "MUSEUM"
+    env_name = "OFFICE"
     mode_name = "random"
     robot_num = 3
-    target_model = TargetModel("MUSEUM_Random")
+    target_model = TargetModel("OFFICE_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
     state_dim = env.position_embed
@@ -149,8 +149,8 @@ if __name__ == "__main__":
     #return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent(env, agents, num_episodes)
     for h in range(len(agents)):
         env_name = env.env_name
-        net_name = "benchmark_save_model/" + env_name + "_MADDPG_R" + str(len(agents)) + "_R" + str(h)
-        torch.save(agents[h].q_net, net_name + '.pth')
+        net_name = "./Benchmark_models/MADDPG/" + env_name + "_MADDPG_R" + str(len(agents)) + "_R" + str(h)
+        torch.save(agents[h].actor, net_name + '.pth')
 
     episodes_list = list(range(len(return_list)))
     np.savetxt("MaDDPG",return_list)

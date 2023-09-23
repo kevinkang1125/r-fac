@@ -124,10 +124,10 @@ if __name__ == "__main__":
     gamma = 0.95
     # device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     device = torch.device("cuda")
-    env_name = "MUSEUM"
+    env_name = "OFFICE"
     mode_name = "random"
     robot_num = 4
-    target_model = TargetModel("MUSEUM_Random")
+    target_model = TargetModel("OFFICE_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
     state_dim = env.position_embed

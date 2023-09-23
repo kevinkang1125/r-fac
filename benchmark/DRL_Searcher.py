@@ -25,8 +25,9 @@ class D_Qnet(torch.nn.Module):
         lengths = torch.tensor([len(seq) for seq in x], dtype=torch.long)
         x = pad_sequence(x, batch_first=True)
         mask = torch.arange(x.size(1)).unsqueeze(0) < lengths.unsqueeze(1)
-        mask = mask.to(x.device)
-        x, _ = self.gru(x)
+        mask = mask.to(x.cuda())
+        x, _ = self.gru(x.cuda())
+        x = x.cuda()
         x = x * mask.unsqueeze(2).float()
         # print("x before lengths - 1:", x)
         x = x[torch.arange(x.size(0)), lengths - 1]
@@ -142,9 +143,9 @@ class D_DQN:
         l = b.floor().long()
         u = b.ceil().long()
         offset = torch.linspace(0, (batch_size - 1) * self.num_atoms, batch_size).long() \
-            .unsqueeze(1).expand(batch_size, self.num_atoms)
+            .unsqueeze(1).expand(batch_size, self.num_atoms).cuda()
         # print("offset.size:",offset.size())
-        proj_dist = torch.zeros(next_q_dist.size())
+        proj_dist = torch.zeros(next_q_dist.size()).cuda()
         # print("proj_dist.size:",proj_dist.size())
         # print("next_q_dist.size",next_q_dist.sum(-1).sum())
         proj_dist.view(-1).index_add_(0, (l + offset).view(-1), (next_q_dist * (u.float() - b)).view(-1))
@@ -184,11 +185,11 @@ if __name__ == "__main__":
     hidden_dim = 256
     gamma = 0.9
     #device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    device = torch.device("cpu")
+    device = torch.device("cuda")
     algorithm_name = "DRL"
-    env_name = "MUSEUM"
+    env_name = "OFFICE"
     mode_name = "random"
-    robot_num = 1
+    robot_num = 4
     target_model = TargetModel(env_name + "_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
@@ -208,7 +209,7 @@ if __name__ == "__main__":
 
     for h in range(len(agents)):
         env_name = env.env_name
-        net_name = "benchmark_save_model/" + env_name + "_DRL_R" + str(len(agents)) + "_R" + str(h)
+        net_name = "./Benchmark_models/DRL/" + env_name + "_DRL_R" + str(len(agents)) + "_R" + str(h)
         torch.save(agents[h].q_net, net_name + '.pth')
 
     episodes_list = list(range(len(return_list)))
