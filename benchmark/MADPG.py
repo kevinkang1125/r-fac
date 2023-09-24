@@ -16,7 +16,7 @@ sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/RL_POMDP'
 import rl_utils as rl_utils
 from gym_pqh_multi_target import gym_pqh
 from Target import TargetModel
-import multi_robot_utils_archive_4th
+import multi_robot_utils as multi_robot_utils
 
 class PolicyNet(torch.nn.Module):
     def __init__(self, obs_dim, hidden_dim, action_dim):
@@ -99,7 +99,7 @@ class MADPG:
         min_log_prob = -2.303
         max_log_prob = -0.105
         log_probs = torch.clamp(torch.log(self.actor(observations, action_masks).gather(1, actions)), min_log_prob,
-                                max_log_prob)
+                                max_log_prob).cuda()
         # print("log_probs:", log_probs)
         actor_loss = -torch.mean(log_probs * returns)
         # print("calculate:", log_probs * returns)
@@ -145,7 +145,7 @@ if __name__ == "__main__":
         agent = MADPG(state_dim, hidden_dim, action_dim, actor_lr, gamma, device)
         agents.append(agent)
 
-    return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent_MADPG(env, agents, num_episodes)
+    return_list = multi_robot_utils.train_on_policy_multi_agent_MADPG(env, agents, num_episodes)
     #return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent(env, agents, num_episodes)
     for h in range(len(agents)):
         env_name = env.env_name
@@ -157,12 +157,12 @@ if __name__ == "__main__":
     plt.plot(episodes_list, return_list)
     plt.xlabel('Episodes')
     plt.ylabel('Returns')
-    plt.title('MADPG on {}'.format(env_name))
+    plt.title('MADPG on {} with num{}'.format(env_name,robot_num))
     plt.show()
 
     mv_return = rl_utils.moving_average(return_list, 101)
     plt.plot(episodes_list, mv_return)
     plt.xlabel('Episodes')
     plt.ylabel('Returns')
-    plt.title('MADPG on {}'.format(env_name))
+    plt.title('MADPG on {} with num{}'.format(env_name,robot_num))
     plt.show()

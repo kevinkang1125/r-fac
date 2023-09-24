@@ -156,7 +156,7 @@ def each_epoch_train_on_policy_agent_maddpg(env, agents, epsilon):
     team_done = False
     # done = False
     counter = 0
-    while counter < 70 if env.env_name =="MUSEUM" else 60 if env.env_name == "OFFICE" else None:
+    while counter < 60:
         team_reward = 0
         for i in range(num_dicts):
             transition_dict = transition_dicts[i]
