@@ -187,8 +187,8 @@ def each_epoch_train_on_policy_agent_CEPG(env, agents, epsilon):
     team_done = False
     # done = False
     counter = 0
-    while counter < 50:
-        team_reward = 0
+    while counter < 60:
+        #team_reward = 0
         for i in range(num_dicts):
             transition_dict = transition_dicts[i]
             if counter == 0:
@@ -205,14 +205,14 @@ def each_epoch_train_on_policy_agent_CEPG(env, agents, epsilon):
             transition_dict['actions'].append(action)
             transition_dict['next_observations'].append(next_obs)
             transition_dict['next_states'].append(next_state)
-            #transition_dict['rewards'].append(reward)
-            team_reward += reward
+            transition_dict['rewards'].append(reward)
+            #team_reward += reward
             transition_dict['rewards_part2'].append(reward_part2)
             transition_dict['dones'].append(done)
             episode_return += reward
-        for i in range(num_dicts):
-            transition_dict = transition_dicts[i]
-            transition_dict['rewards'].append(team_reward)
+        # for i in range(num_dicts):
+        #     transition_dict = transition_dicts[i]
+        #     transition_dict['rewards'].append(team_reward)
         #     if done:
         #         team_done = True
         # if team_done:

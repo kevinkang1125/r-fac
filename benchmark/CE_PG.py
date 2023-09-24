@@ -141,10 +141,10 @@ if __name__ == "__main__":
     gamma = 0.9#0.9
     device = torch.device("cuda")
 
-    env_name = "MUSEUM"
+    env_name = "OFFICE"
     mode_name = "random"
-    robot_num = 3
-    target_model = TargetModel("MUSEUM_Random")
+    robot_num = 4
+    target_model = TargetModel("OFFICE_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
     state_dim = env.position_embed
@@ -156,6 +156,10 @@ if __name__ == "__main__":
         agents.append(agent)
 
     return_list = multi_robot_utils.train_on_policy_multi_agent_CEPG(env, agents, num_episodes)
+    
+    for h in range(len(agents)):
+        net_name = "./Benchmark_models/CE_PG/" + env_name + "_CE_PG_R" + str(len(agents)) + "_R" + str(h)
+        torch.save(agents[h].q_net, net_name + '.pth')
 
     episodes_list = list(range(len(return_list)))
     plt.plot(episodes_list, return_list)
