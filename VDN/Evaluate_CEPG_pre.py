@@ -141,8 +141,8 @@ if __name__ == "__main__":
     num_episodes = 80
     target_update = 2
     iter = 100
-    test_steps = 100
-    rho = 0.9
+    
+    rho = 0.6
     rho_list = [2,5]
     beta = 0.5
     epoch = 10
@@ -155,11 +155,12 @@ if __name__ == "__main__":
     algo = "V2DN"
     #algo = "VDN"
     
-    test_mode = "DUR"#"PRE""DUR"
+    test_mode = "PRE"#"PRE""DUR"
     env_name = "MUSEUM"
+    test_steps = 140 if env_name =="MUSEUM" else 120
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
-    robot_num = 2
+    robot_num = 3
     target_model = TargetModel("MUSEUM_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
@@ -199,11 +200,12 @@ if __name__ == "__main__":
                         alive_list.append(i)
                 if len(alive_list)== 0:
                     team_done = True
-                    counter = 100
+                    counter = 140 if env_name =="MUSEUM" else 120
                 else:
                     observations, states, action_nums = env.reset()
                     counter = 0
                 while not team_done:
+                    env._target_move()
                     agent_done_list = []
                     for m in (alive_list):
                         transition_dict = transition_dicts[i]
@@ -256,6 +258,7 @@ if __name__ == "__main__":
                 counter = 0
                 while not team_done:
                     agent_done_list = []
+                    env._target_move()
                     if counter in rho_list:
                         robot = random.choice(alive_index)
                         alive_index.remove(robot)
