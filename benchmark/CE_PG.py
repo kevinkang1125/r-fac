@@ -15,7 +15,7 @@ sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/RL_POMDP'
 import rl_utils
 from gym_pqh_multi_target import gym_pqh
 from Target import TargetModel
-import multi_robot_utils_archive_4th
+import multi_robot_utils
 
 class PolicyNet(torch.nn.Module):
     def __init__(self, obs_dim, hidden_dim, action_dim):
@@ -28,7 +28,8 @@ class PolicyNet(torch.nn.Module):
         lengths = torch.tensor([len(seq) for seq in x], dtype=torch.long)
         x = pad_sequence(x, batch_first=True)
         mask = torch.arange(x.size(1)).unsqueeze(0) < lengths.unsqueeze(1)
-        mask = mask.to(x.device)
+        mask = mask.to(x.cuda())
+        x = x.cuda()
         x, _ = self.gru(x)
         x = x * mask.unsqueeze(2).float()
         # print("x before lengths - 1:", x)
@@ -135,10 +136,10 @@ if __name__ == "__main__":
     beta = 0.1
     actor_lr = 2e-5
     diversity_lr = 2e-5
-    num_episodes = 40000
-    hidden_dim = 128#256
-    gamma = 0.95#0.9
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    num_episodes = 20000
+    hidden_dim = 256#256
+    gamma = 0.9#0.9
+    device = torch.device("cuda")
 
     env_name = "MUSEUM"
     mode_name = "random"
@@ -154,7 +155,7 @@ if __name__ == "__main__":
         agent = CEPG(state_dim, hidden_dim, action_dim, actor_lr, gamma, device, beta)
         agents.append(agent)
 
-    return_list = multi_robot_utils_archive_4th.train_on_policy_multi_agent_CEPG(env, agents, num_episodes)
+    return_list = multi_robot_utils.train_on_policy_multi_agent_CEPG(env, agents, num_episodes)
 
     episodes_list = list(range(len(return_list)))
     plt.plot(episodes_list, return_list)
