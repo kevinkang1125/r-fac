@@ -51,8 +51,8 @@ class gym_pqh:
         self.target_model = target_model
 
     def step(self, action, robot_label):
-        if robot_label == 0:
-            self._target_set_move()
+        # if robot_label == 0:
+        #     self._target_set_move()
 
         robot_position = self.robot_position_list[robot_label]
 

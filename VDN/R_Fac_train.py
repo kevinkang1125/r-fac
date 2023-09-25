@@ -60,6 +60,7 @@ def faulty_sampling_pre(env, agents, rho):
     counter = 0
     while counter < horizon:
         # obs_list = env.observation_list
+        env._target_set_move()
         for i in (num_dicts):
             transition_dict = transition_dicts[i]
             if counter == 0:
