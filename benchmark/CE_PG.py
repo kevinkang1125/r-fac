@@ -159,7 +159,7 @@ if __name__ == "__main__":
     
     for h in range(len(agents)):
         net_name = "./Benchmark_models/CE_PG/" + env_name + "_CE_PG_R" + str(len(agents)) + "_R" + str(h)
-        torch.save(agents[h].q_net, net_name + '.pth')
+        torch.save(agents[h].actor, net_name + '.pth')
 
     episodes_list = list(range(len(return_list)))
     plt.plot(episodes_list, return_list)
