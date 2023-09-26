@@ -15,7 +15,7 @@ class gym_pqh:
         self.embedding_layer = EmbeddingLayer(self.total_position+1, self.position_embed, 0)
         self.mode_num = mode_name
         self.robot_num = robot_num
-        self.robot_initial_position = 40 if env_name == "MUSEUM" else 43 if env_name == "OFFICE" else None
+        self.robot_initial_position = 28 if env_name == "MUSEUM" else 43 if env_name == "OFFICE" else None
         self.robot_initial_actionNum_set = [self.map.next_total_action(self.robot_initial_position) for _ in range(robot_num)]
         self.robot_position_initial_list = [self.robot_initial_position for _ in range(robot_num)]
         self.target_initial_position = 66 if env_name == "MUSEUM" else 48 if env_name == "OFFICE" else None
