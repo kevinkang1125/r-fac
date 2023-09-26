@@ -147,7 +147,7 @@ if __name__ == "__main__":
     beta = 0.5
     epoch = 10
 
-    hidden_dim = 128
+    hidden_dim = 256
     gamma = 0.95
     gamma_2 = 0.99
     #device = torch.device("cuda")
@@ -156,12 +156,12 @@ if __name__ == "__main__":
     #algo = "VDN"
     
     test_mode = "PRE"#"PRE""DUR"
-    env_name = "MUSEUM"
+    env_name = "OFFICE"
     test_steps = 140 if env_name =="MUSEUM" else 120
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
-    robot_num = 3
-    target_model = TargetModel("MUSEUM_Random")
+    robot_num = 4
+    target_model = TargetModel("OFFICE_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
     state_dim = env.position_embed
@@ -173,7 +173,7 @@ if __name__ == "__main__":
     #     agents.append(agent)
     
     for i in range(robot_num):
-        path = "./Benchmark_models/CE_PG/MUSEUM_CEPG_R{}_R{}.pth".format(robot_num,i)
+        path = "./Benchmark_models/CE_PG/{}_CE_PG_R{}_R{}.pth".format(env_name,robot_num,i)
         agent = CEPG(state_dim, hidden_dim, action_dim, lr, gamma, device, beta)
         agent.actor = copy.deepcopy(torch.load(path).cuda())
         agents.append(agent)

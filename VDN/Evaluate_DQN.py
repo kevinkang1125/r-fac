@@ -120,7 +120,6 @@ if __name__ == "__main__":
     num_episodes = 80
     target_update = 2
     iter = 100
-    test_steps = 100
     rho = 0.9
     rho_list = [2,5]
     beta = 0.5
@@ -137,8 +136,9 @@ if __name__ == "__main__":
     test_mode = "PRE"#"PRE""DUR"
     env_name = "MUSEUM"
     horizon = 70 if env_name =="MUSEUM" else 60
+    test_steps = 140 if env_name =="MUSEUM" else 120
     mode_name = "random"
-    robot_num = 2
+    robot_num = 3
     target_model = TargetModel("MUSEUM_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
@@ -146,20 +146,13 @@ if __name__ == "__main__":
     action_dim = env.action_space
     agents = []
 
-    # for i in range(robot_num):
-    #     agent = Agent(state_dim, hidden_dim, action_dim, lr, gamma, epsilon, target_update, device)
-    #     agents.append(agent)
     
     for i in range(robot_num):
-        path = "./Benchmark_models/DQN/MUSEUM_DQN_R{}_R{}.pth".format(robot_num,i)
+        path = "./Benchmark_models/DQN/{}_DQN_R{}_R{}.pth".format(env_name,robot_num,i)
         agent = DQN(state_dim, hidden_dim, action_dim, lr, gamma, epsilon, target_update, device)
         agent.q_net = copy.deepcopy(torch.load(path).cuda())
         agents.append(agent)
 
-    # for i in range(robot_num):
-    #     agents[i].load('./off policy robot{} in teamsize{} with rho{} in {}.pth'.format(i,robot_num,rho,env_name))
-        #agents[i].load('./off policy robot{} in teamsize{} with rho{} in {}.pth'.format(i,robot_num,rho,env_name))
-    
     epoch_list = []
     if test_mode == "PRE":
         
@@ -178,11 +171,12 @@ if __name__ == "__main__":
                         alive_list.append(i)
                 if len(alive_list)== 0:
                     team_done = True
-                    counter = 100
+                    counter = 140 if env_name =="MUSEUM" else 120
                 else:
                     observations, states, action_nums = env.reset()
                     counter = 0
                 while not team_done:
+                    env._target_move()
                     agent_done_list = []
                     for m in (alive_list):
                         transition_dict = transition_dicts[i]
@@ -192,7 +186,7 @@ if __name__ == "__main__":
                             obs = transition_dict['next_observations'][-1]
                         agent = agents[i]
                         action_num = action_nums[i]
-                        action = agent.take_action(obs, action_num,epsilon)
+                        action = agent.take_action(obs, action_num)
                         transition_dict['action_num'].append(action_num)
                         next_obs, next_state, reward, done, action_num = env.step(action, i)
                         action_nums[i] = action_num
@@ -248,7 +242,7 @@ if __name__ == "__main__":
                             obs = transition_dict['next_observations'][-1]
                         agent = agents[i]
                         action_num = action_nums[i]
-                        action = agent.take_action(obs, action_num,epsilon)
+                        action = agent.take_action(obs, action_num)
                         transition_dict['action_num'].append(action_num)
                         next_obs, next_state, reward, done, action_num = env.step(action, i)
                         action_nums[i] = action_num

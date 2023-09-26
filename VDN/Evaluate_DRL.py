@@ -89,83 +89,83 @@ class D_DQN:
             action = self.take_max_action(obs, action_num)
         return action
 
-    def update(self, transition_dict):
-        observations = [torch.tensor(obs, dtype=torch.float).to(self.device) for obs in transition_dict['observations']]
-        next_observations = [torch.tensor(next_obs, dtype=torch.float).to(self.device) for next_obs in
-                             transition_dict['next_observations']]
+    # def update(self, transition_dict):
+    #     observations = [torch.tensor(obs, dtype=torch.float).to(self.device) for obs in transition_dict['observations']]
+    #     next_observations = [torch.tensor(next_obs, dtype=torch.float).to(self.device) for next_obs in
+    #                          transition_dict['next_observations']]
 
-        actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
-        rewards = torch.tensor(transition_dict['rewards'], dtype=torch.float).view(-1, 1).to(self.device)
-        rewards_part2 = torch.tensor(transition_dict['rewards_part2'], dtype=torch.float).view(-1, 1).to(self.device)
-        dones = torch.tensor(transition_dict['dones'], dtype=torch.float).view(-1, 1).to(self.device)
-        valid_actions_list = transition_dict['action_num']
-        action_masks = self.create_action_masks(self.action_dim, valid_actions_list, self.device)
-        next_valid_actions_list = transition_dict['next_action_num']
-        next_action_masks = self.create_action_masks(self.action_dim, next_valid_actions_list, self.device)
+    #     actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)
+    #     rewards = torch.tensor(transition_dict['rewards'], dtype=torch.float).view(-1, 1).to(self.device)
+    #     rewards_part2 = torch.tensor(transition_dict['rewards_part2'], dtype=torch.float).view(-1, 1).to(self.device)
+    #     dones = torch.tensor(transition_dict['dones'], dtype=torch.float).view(-1, 1).to(self.device)
+    #     valid_actions_list = transition_dict['action_num']
+    #     action_masks = self.create_action_masks(self.action_dim, valid_actions_list, self.device)
+    #     next_valid_actions_list = transition_dict['next_action_num']
+    #     next_action_masks = self.create_action_masks(self.action_dim, next_valid_actions_list, self.device)
 
-        q_dist = self.q_net(observations, action_masks)
-        next_q_dist = self.q_net(next_observations, next_action_masks)
-        next_q_dist_target = self.target_q_net(next_observations, next_action_masks)
-        # print("q_dist.size", q_dist.size())
-        # print("q_dist.size", q_dist.sum(-1).sum())
-        q_expectations = torch.sum(next_q_dist * self.atoms, dim=2)
-        masked_q_expectations = q_expectations.masked_fill(next_action_masks, float('-inf'))
-        next_actions = masked_q_expectations.argmax(1).unsqueeze(1)
-        # next_actions = self.take_max_action(next_observations, next_valid_actions_list)
-        # print("actions.size()",actions.size())
-        # print("next_actions.size()",next_actions.size())
-        # print("next_actions:",next_actions)
-        # next_actions = next_q_dist.sum(2).argmax(1)  # select actions based on main network
-        # next_q_dist_sum = next_q_dist.sum(2)
-        # masked_next_q_dist = next_q_dist_sum.masked_fill(~next_action_masks, float('-inf'))
-        # next_actions = masked_next_q_dist.argmax(1)
-        # print("next_actions:", next_actions)
-        next_q_dist = next_q_dist_target[range(len(next_actions)), next_actions.squeeze().long()]
-        # Replace next_q_dist with a delta distribution at the reward for terminal states
-        # done_mask = dones.squeeze().bool()  # convert to bool for indexing
-        # next_q_dist[done_mask] = torch.zeros_like(next_q_dist[done_mask])  # set to zeros first
-        # reward_indices = 4
-        # next_q_dist[done_mask].scatter_(1, reward_indices, 1)
-        # print("next_q_dist.size", next_q_dist.sum(-1).sum())
-        for t in range(len(dones)):
-            if dones[t]:
-                next_q_dist[t] = 0.0
-                next_q_dist[t][4] = 1.0
-        # print("next_q_dist.size",next_q_dist.sum(-1).sum())
-        q_dist = q_dist[range(len(actions)), actions.squeeze().long()]
-        q_dist.data.clamp_(0.0001, 0.9999)  # to avoid division by 0
+    #     q_dist = self.q_net(observations, action_masks)
+    #     next_q_dist = self.q_net(next_observations, next_action_masks)
+    #     next_q_dist_target = self.target_q_net(next_observations, next_action_masks)
+    #     # print("q_dist.size", q_dist.size())
+    #     # print("q_dist.size", q_dist.sum(-1).sum())
+    #     q_expectations = torch.sum(next_q_dist * self.atoms, dim=2)
+    #     masked_q_expectations = q_expectations.masked_fill(next_action_masks, float('-inf'))
+    #     next_actions = masked_q_expectations.argmax(1).unsqueeze(1)
+    #     # next_actions = self.take_max_action(next_observations, next_valid_actions_list)
+    #     # print("actions.size()",actions.size())
+    #     # print("next_actions.size()",next_actions.size())
+    #     # print("next_actions:",next_actions)
+    #     # next_actions = next_q_dist.sum(2).argmax(1)  # select actions based on main network
+    #     # next_q_dist_sum = next_q_dist.sum(2)
+    #     # masked_next_q_dist = next_q_dist_sum.masked_fill(~next_action_masks, float('-inf'))
+    #     # next_actions = masked_next_q_dist.argmax(1)
+    #     # print("next_actions:", next_actions)
+    #     next_q_dist = next_q_dist_target[range(len(next_actions)), next_actions.squeeze().long()]
+    #     # Replace next_q_dist with a delta distribution at the reward for terminal states
+    #     # done_mask = dones.squeeze().bool()  # convert to bool for indexing
+    #     # next_q_dist[done_mask] = torch.zeros_like(next_q_dist[done_mask])  # set to zeros first
+    #     # reward_indices = 4
+    #     # next_q_dist[done_mask].scatter_(1, reward_indices, 1)
+    #     # print("next_q_dist.size", next_q_dist.sum(-1).sum())
+    #     for t in range(len(dones)):
+    #         if dones[t]:
+    #             next_q_dist[t] = 0.0
+    #             next_q_dist[t][4] = 1.0
+    #     # print("next_q_dist.size",next_q_dist.sum(-1).sum())
+    #     q_dist = q_dist[range(len(actions)), actions.squeeze().long()]
+    #     q_dist.data.clamp_(0.0001, 0.9999)  # to avoid division by 0
 
 
-        rewards = rewards.expand_as(next_q_dist)
-        # print("dones:",dones)
-        dones = dones.expand_as(next_q_dist)
-        atoms = self.atoms.expand_as(next_q_dist)
-        # print("calculate:",(1 - dones) * self.gamma * atoms)
-        # Tz = rewards + (1 - dones) * self.gamma * atoms
-        # print("Tz:",Tz)
-        Tz = 0.0001 + rewards + self.gamma * atoms
-        Tz = Tz.clamp(min=self.v_min+0.0001, max=self.v_max-0.0001)
-        b = (Tz - self.v_min) / self.delta_z
-        l = b.floor().long()
-        u = b.ceil().long()
-        offset = torch.linspace(0, (batch_size - 1) * self.num_atoms, batch_size).long() \
-            .unsqueeze(1).expand(batch_size, self.num_atoms).cuda()
-        # print("offset.size:",offset.size())
-        proj_dist = torch.zeros(next_q_dist.size()).cuda()
-        # print("proj_dist.size:",proj_dist.size())
-        # print("next_q_dist.size",next_q_dist.sum(-1).sum())
-        proj_dist.view(-1).index_add_(0, (l + offset).view(-1), (next_q_dist * (u.float() - b)).view(-1))
-        proj_dist.view(-1).index_add_(0, (u + offset).view(-1), (next_q_dist * (b - l.float())).view(-1))
-        # print("proj_dist.size", proj_dist.sum(-1).sum())
-        dqn_loss = -(proj_dist * q_dist.log()).sum(1).mean()
+    #     rewards = rewards.expand_as(next_q_dist)
+    #     # print("dones:",dones)
+    #     dones = dones.expand_as(next_q_dist)
+    #     atoms = self.atoms.expand_as(next_q_dist)
+    #     # print("calculate:",(1 - dones) * self.gamma * atoms)
+    #     # Tz = rewards + (1 - dones) * self.gamma * atoms
+    #     # print("Tz:",Tz)
+    #     Tz = 0.0001 + rewards + self.gamma * atoms
+    #     Tz = Tz.clamp(min=self.v_min+0.0001, max=self.v_max-0.0001)
+    #     b = (Tz - self.v_min) / self.delta_z
+    #     l = b.floor().long()
+    #     u = b.ceil().long()
+    #     offset = torch.linspace(0, (batch_size - 1) * self.num_atoms, batch_size).long() \
+    #         .unsqueeze(1).expand(batch_size, self.num_atoms).cuda()
+    #     # print("offset.size:",offset.size())
+    #     proj_dist = torch.zeros(next_q_dist.size()).cuda()
+    #     # print("proj_dist.size:",proj_dist.size())
+    #     # print("next_q_dist.size",next_q_dist.sum(-1).sum())
+    #     proj_dist.view(-1).index_add_(0, (l + offset).view(-1), (next_q_dist * (u.float() - b)).view(-1))
+    #     proj_dist.view(-1).index_add_(0, (u + offset).view(-1), (next_q_dist * (b - l.float())).view(-1))
+    #     # print("proj_dist.size", proj_dist.sum(-1).sum())
+    #     dqn_loss = -(proj_dist * q_dist.log()).sum(1).mean()
 
-        self.optimizer.zero_grad()  # PyTorch中默认梯度会累积,这里需要显式将梯度置为0
-        dqn_loss.backward()  # 反向传播更新参数
-        self.optimizer.step()
+    #     self.optimizer.zero_grad()  # PyTorch中默认梯度会累积,这里需要显式将梯度置为0
+    #     dqn_loss.backward()  # 反向传播更新参数
+    #     self.optimizer.step()
 
-        if self.count % self.target_update == 0:
-            self.target_q_net.load_state_dict(self.q_net.state_dict())  # 更新目标网络
-        self.count += 1
+    #     if self.count % self.target_update == 0:
+    #         self.target_q_net.load_state_dict(self.q_net.state_dict())  # 更新目标网络
+    #     self.count += 1
 
     def create_action_mask(self, total_actions, valid_actions):
         action_mask = [False] * valid_actions + [True] * (total_actions - valid_actions)
@@ -185,12 +185,11 @@ if __name__ == "__main__":
     num_episodes = 80
     target_update = 2
     iter = 100
-    test_steps = 100
     rho = 0.9
     rho_list = [2,5]
     beta = 0.5
     epoch = 10
-    batch_size = 128
+
     hidden_dim = 128
     gamma = 0.95
     gamma_2 = 0.99
@@ -202,8 +201,9 @@ if __name__ == "__main__":
     test_mode = "PRE"#"PRE""DUR"
     env_name = "MUSEUM"
     horizon = 70 if env_name =="MUSEUM" else 60
+    test_steps = 140 if env_name =="MUSEUM" else 120
     mode_name = "random"
-    robot_num = 2
+    robot_num = 3
     target_model = TargetModel("MUSEUM_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
@@ -211,9 +211,6 @@ if __name__ == "__main__":
     action_dim = env.action_space
     agents = []
 
-    # for i in range(robot_num):
-    #     agent = Agent(state_dim, hidden_dim, action_dim, lr, gamma, epsilon, target_update, device)
-    #     agents.append(agent)
     
     for i in range(robot_num):
         path = "./Benchmark_models/DRL/MUSEUM_DRL_R{}_R{}.pth".format(robot_num,i)
@@ -221,9 +218,6 @@ if __name__ == "__main__":
         agent.q_net = copy.deepcopy(torch.load(path).cuda())
         agents.append(agent)
 
-    # for i in range(robot_num):
-    #     agents[i].load('./off policy robot{} in teamsize{} with rho{} in {}.pth'.format(i,robot_num,rho,env_name))
-        #agents[i].load('./off policy robot{} in teamsize{} with rho{} in {}.pth'.format(i,robot_num,rho,env_name))
     
     epoch_list = []
     if test_mode == "PRE":
@@ -243,11 +237,12 @@ if __name__ == "__main__":
                         alive_list.append(i)
                 if len(alive_list)== 0:
                     team_done = True
-                    counter = 100
+                    counter = 140 if env_name =="MUSEUM" else 120
                 else:
                     observations, states, action_nums = env.reset()
                     counter = 0
                 while not team_done:
+                    env._target_move()
                     agent_done_list = []
                     for m in (alive_list):
                         transition_dict = transition_dicts[i]
@@ -257,7 +252,7 @@ if __name__ == "__main__":
                             obs = transition_dict['next_observations'][-1]
                         agent = agents[i]
                         action_num = action_nums[i]
-                        action = agent.take_action(obs, action_num,epsilon)
+                        action = agent.take_action(obs, action_num)
                         transition_dict['action_num'].append(action_num)
                         next_obs, next_state, reward, done, action_num = env.step(action, i)
                         action_nums[i] = action_num
@@ -300,6 +295,7 @@ if __name__ == "__main__":
                 counter = 0
                 while not team_done:
                     agent_done_list = []
+                    env._target_move()
                     if counter in rho_list:
                         robot = random.choice(alive_index)
                         alive_index.remove(robot)
@@ -313,7 +309,7 @@ if __name__ == "__main__":
                             obs = transition_dict['next_observations'][-1]
                         agent = agents[i]
                         action_num = action_nums[i]
-                        action = agent.take_action(obs, action_num,epsilon)
+                        action = agent.take_action(obs, action_num)
                         transition_dict['action_num'].append(action_num)
                         next_obs, next_state, reward, done, action_num = env.step(action, i)
                         action_nums[i] = action_num
