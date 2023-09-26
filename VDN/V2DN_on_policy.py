@@ -131,10 +131,10 @@ class V2DN_pre:
             current_q_values[:,i:i+1],next_max_q_values[:,i:i+1],rewards[:,i:i+1] = self.agents[i].output_agent(transition_dicts[i])
             joint_current = joint_current + torch.exp(current_q_values[:,i:i+1])
             joint_next =joint_next + torch.exp(next_max_q_values[:,i:i+1])
-            team_reward =team_reward+ torch.exp(rewards[:,i:i+1])
+            team_reward =team_reward+ rewards[:,i:i+1]
          
         # Compute the joint target Q-value using the team reward
-        joint_target_q_value = torch.log(team_reward) + gamma * torch.log(joint_next)
+        joint_target_q_value = team_reward + gamma * torch.log(joint_next)
         joint_current_log = torch.log(joint_current)
         
         td_error = joint_target_q_value-joint_current_log
@@ -231,19 +231,19 @@ class V2DN_dur:
             
 
 if __name__ == "__main__":
-    lr = 5e-4
-    epsilon = 0.15
-    num_episodes = 10
-    target_update = 2
+    lr = 2e-5
+    epsilon = 0.2
+    num_episodes = 40000
+    target_update = 5
     iter = 10
      
     rho = 0.9
     rho_list = [5,10]
 
     #hidden_dim = 128
-    hidden_dim = 128
+    hidden_dim = 256
     gamma = 0.95
-    gamma_2 = 0.95
+    gamma_2 = 0.9
     device = torch.device("cuda")
     algo = "V2DN"
     #algo = "VDN"
@@ -267,15 +267,19 @@ if __name__ == "__main__":
         agents.append(agent)
     
 
-    #mixer = V2DN_pre(agents,gamma_2,agent_num=robot_num, horizon= horizon)
-    mixer = V2DN_dur(agents,gamma_2,agent_num=robot_num, horizon= horizon)
+    mixer = V2DN_pre(agents,gamma_2,agent_num=robot_num, horizon= horizon)
+    #mixer = V2DN_dur(agents,gamma_2,agent_num=robot_num, horizon= horizon)
 
     # return_list = multi_robot_utils_off_policy.train_V2DN_on_policy_multi_agent(env, mixer,agents, replay_buffers, num_episodes,
     #                                                                          batch_size,rho)
-    return_list, td_list = rf.train_resilient_on_policy_multi_agent_dur(env, mixer, agents, num_episodes, rho_list, iter)
-    for i in range(robot_num):
-        agents[i].save('./on policy robot{} in teamsize{} with rho{} in {}.pth'.format(i,robot_num,rho,env_name))
-    episodes_list = list(range(len(return_list)))
+    return_list, td_list = rf.train_resilient_on_policy_multi_agent(env, mixer, agents, num_episodes, rho, iter)
+    # for i in range(robot_num):
+    #     agents[i].save('./on policy robot{} in teamsize{} with rho{} in {}.pth'.format(i,robot_num,rho,env_name))
+    # episodes_list = list(range(len(return_list)))
+    
+    for h in range(len(agents)):
+        net_name = "./Benchmark_models/V2DN/" + env_name + "_V2DN_R" + str(len(agents)) + "_R" + str(h)
+        torch.save(agents[h].q_net, net_name + '.pth')
     #plt.plot(episodes_list, return_list)
     
     plt.subplot(221)
