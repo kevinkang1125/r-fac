@@ -205,7 +205,7 @@ def each_epoch_train_on_policy_agent_CEPG(env, agents, epsilon):
     # done = False
     counter = 0
     while counter < 60:
-        #team_reward = 0
+        team_reward = 0
         for i in range(num_dicts):
             transition_dict = transition_dicts[i]
             if counter == 0:
