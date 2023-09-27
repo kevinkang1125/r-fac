@@ -43,7 +43,7 @@ class PolicyNet(torch.nn.Module):
         # print("after_action_mask:",logits_masked)
         return F.softmax(logits_masked, dim=1)
 
-class MADDPG:
+class CEPG:
     ''' Vanilla Policy Gradient (REINFORCE) algorithm '''
     def __init__(self, obs_dim, hidden_dim, action_dim, actor_lr, gamma, device, beta):
         self.beta = beta
@@ -136,15 +136,15 @@ if __name__ == "__main__":
     beta = 0
     actor_lr = 2e-5
     diversity_lr = 2e-5
-    num_episodes = 30000
+    num_episodes = 20000
     hidden_dim = 256#256
     gamma = 0.9#0.9
     device = torch.device("cuda")
 
-    env_name = "OFFICE"
+    env_name = "MUSEUM"
     mode_name = "random"
-    robot_num = 4
-    target_model = TargetModel("OFFICE_Random")
+    robot_num = 2
+    target_model = TargetModel("MUSEUM_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
     state_dim = env.position_embed
@@ -152,10 +152,10 @@ if __name__ == "__main__":
 
     agents = []
     for i in range(robot_num):
-        agent = MADDPG(state_dim, hidden_dim, action_dim, actor_lr, gamma, device, beta)
+        agent = CEPG(state_dim, hidden_dim, action_dim, actor_lr, gamma, device, beta)
         agents.append(agent)
 
-    return_list = multi_robot_utils.train_on_policy_multi_agent_MADDPG(env, agents, num_episodes)
+    return_list = multi_robot_utils.train_on_policy_multi_agent_CEPG(env, agents, num_episodes)
     
     for h in range(len(agents)):
         net_name = "./Benchmark_models/MADDPG/" + env_name + "_MADDPG_R" + str(len(agents)) + "_R" + str(h)
