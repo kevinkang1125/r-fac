@@ -187,9 +187,9 @@ if __name__ == "__main__":
     #device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     device = torch.device("cuda")
     algorithm_name = "DRL"
-    env_name = "OFFICE"
+    env_name = "MUSEUM"
     mode_name = "random"
-    robot_num = 4
+    robot_num = 5
     target_model = TargetModel(env_name + "_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
