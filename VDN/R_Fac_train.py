@@ -53,11 +53,14 @@ def faulty_sampling_pre(env, agents, rho):
     for i in range(agent_num):
         if np.random.random() < rho:
             alive_list.append(i)
-    horizon = 70 if env.env_name =="MUSEUM" else 60 if env.env_name == "OFFICE" else None   
+    horizon = 70 if env.env_name =="MUSEUM" else 60 if env.env_name == "OFFICE" else None  
     ##change into index
     num_dicts = alive_list
     observations, states, action_nums = env.reset()
     counter = 0
+    if len(num_dicts)== 0:
+        num_dicts = [0]
+    factor = agent_num/len(num_dicts)
     while counter < horizon:
         # obs_list = env.observation_list
         env._target_set_move()
@@ -82,7 +85,7 @@ def faulty_sampling_pre(env, agents, rho):
             transition_dict['dones'].append(done)
             episode_return += reward
         counter += 1
-    return episode_return,alive_list,transition_dicts
+    return episode_return*factor,alive_list,transition_dicts
 
 def faulty_sampling_during(env, agents, rho_list):
     episode_return = 0.0
