@@ -17,7 +17,7 @@ def train_resilient_on_policy_multi_agent(env, mixer, agents, num_episodes, rho,
             for i_episode in range(int(num_episodes / epoch_num)):
                 episode_return,alive_index,trainsition_dicts = faulty_sampling_pre(env, agents,rho)
                 return_multi_list.append(episode_return)
-                td_error = central_train_on_policy_pre(mixer, trainsition_dicts,alive_index,iter)
+                td_error = central_train_on_policy_pre(mixer, trainsition_dicts,alive_index,iter,agents)
                 td_list.extend(td_error)
                 if (i_episode + 1) % 10 == 0:
                     pbar.set_postfix({'episode': '%d' % (num_episodes / epoch_num * i + i_episode + 1),
@@ -129,10 +129,10 @@ def faulty_sampling_during(env, agents, rho_list):
         alive_lists.append(alive_index.copy())
     return episode_return,alive_lists,transition_dicts
 
-def central_train_on_policy_pre(mixer,transition_dicts,alive_index,iter):
+def central_train_on_policy_pre(mixer,transition_dicts,alive_index,iter,agents):
     td_list = []
     for m in range (iter):
-        td_error = mixer.learn(alive_index,transition_dicts)
+        td_error = mixer.learn(alive_index,transition_dicts,agents)
         td_list.append(td_error.item())
     return td_list
 

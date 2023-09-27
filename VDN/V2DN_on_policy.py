@@ -114,12 +114,12 @@ class Agent:
         torch.save(self.q_net.state_dict(),path)
 
 class V2DN_pre:
-    def __init__(self,agents,gamma_2,agent_num, horizon):
-        self.agents = agents
+    def __init__(self,gamma_2,agent_num, horizon):
+        #self.agents = agents
         self.gamma = gamma_2
         self.agent_num = agent_num
         self.horizon = horizon
-    def learn(self, alive_index,transition_dicts):
+    def learn(self, alive_index,transition_dicts,agents):
         # Get Q-values for the current state and action for all agents
         joint_current = torch.zeros(self.horizon,requires_grad=True).cuda()
         joint_next = torch.zeros(self.horizon,1,requires_grad=True).cuda()
@@ -128,7 +128,7 @@ class V2DN_pre:
         next_max_q_values = torch.zeros(self.horizon,self.agent_num,requires_grad=True).cuda()
         rewards = torch.zeros(self.horizon,self.agent_num,requires_grad=True).cuda()
         for i in alive_index:
-            current_q_values[:,i:i+1],next_max_q_values[:,i:i+1],rewards[:,i:i+1] = self.agents[i].output_agent(transition_dicts[i])
+            current_q_values[:,i:i+1],next_max_q_values[:,i:i+1],rewards[:,i:i+1] = agents[i].output_agent(transition_dicts[i])
             joint_current = joint_current + torch.exp(current_q_values[:,i:i+1])
             joint_next =joint_next + torch.exp(next_max_q_values[:,i:i+1])
             team_reward =team_reward+ rewards[:,i:i+1]
@@ -141,7 +141,7 @@ class V2DN_pre:
         td_error = torch.sum(td_error.pow(2))+1e-5
         optimizer_list = []
         for i in alive_index:
-            opt  = self.agents[i].opt()
+            opt  = agents[i].opt()
             opt.zero_grad()
             optimizer_list.append(opt)
         #td_error.requires_grad = True
@@ -149,7 +149,7 @@ class V2DN_pre:
         for m in range(len(optimizer_list)):
             optimizer_list[m].step()
         for a in alive_index:
-            self.agents[a].update()
+            agents[a].update()
         return td_error
 
 class V2DN_dur:
@@ -232,7 +232,7 @@ class V2DN_dur:
 
 if __name__ == "__main__":
     lr = 2e-5
-    epsilon = 0.2
+    epsilon = 0.15
     num_episodes = 40000
     target_update = 5
     iter = 10
@@ -253,7 +253,7 @@ if __name__ == "__main__":
     env_name = "MUSEUM"
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
-    robot_num = 3
+    robot_num = 4
     target_model = TargetModel("MUSEUM_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
@@ -267,7 +267,7 @@ if __name__ == "__main__":
         agents.append(agent)
     
 
-    mixer = V2DN_pre(agents,gamma_2,agent_num=robot_num, horizon= horizon)
+    mixer = V2DN_pre(gamma_2,agent_num=robot_num, horizon= horizon)
     #mixer = V2DN_dur(agents,gamma_2,agent_num=robot_num, horizon= horizon)
 
     # return_list = multi_robot_utils_off_policy.train_V2DN_on_policy_multi_agent(env, mixer,agents, replay_buffers, num_episodes,
