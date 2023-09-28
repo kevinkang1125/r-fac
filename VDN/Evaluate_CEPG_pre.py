@@ -137,12 +137,12 @@ class CEPG:
 
 if __name__ == "__main__":
     lr = 5e-2
-    epsilon = 0.1
+    epsilon = 0.3
     num_episodes = 80
     target_update = 2
     iter = 100
-    
-    rho = 0.6
+    #target 55 for office 2 robot
+    rho = 0.9
     rho_list = [2,5]
     beta = 0.5
     epoch = 10
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     test_steps = 140 if env_name =="MUSEUM" else 120
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
-    robot_num = 4
+    robot_num = 3
     target_model = TargetModel("OFFICE_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)

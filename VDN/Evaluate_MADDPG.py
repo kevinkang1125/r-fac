@@ -142,7 +142,7 @@ if __name__ == "__main__":
     target_update = 2
     iter = 100
     
-    rho = 0.9
+    rho = 0.8
     rho_list = [2,5]
     beta = 0.5
     epoch = 10
@@ -154,13 +154,19 @@ if __name__ == "__main__":
     device = torch.device("cuda")
     algo = "V2DN"
     #algo = "VDN"
-    
+    #for 2 robot, 44 start and 55 for target OFFICE
+    #for 3 robot, 60 start and 54 for target OFFICE
+    #for 4 robot, 53 start and 48 for target OFFICE
+
+    #for 2 robot, 1 start and 69 for target museum
+    #for 3 robot, 49 start and 37 for target museum
+    #for 4 robot, 49 start and 68 for target museum
     test_mode = "PRE"#"PRE""DUR"
     env_name = "MUSEUM"
     test_steps = 140 if env_name =="MUSEUM" else 120
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
-    robot_num = 3
+    robot_num = 4
     target_model = TargetModel("MUSEUM_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)

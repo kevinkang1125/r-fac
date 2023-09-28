@@ -116,11 +116,11 @@ class DQN:
 
 if __name__ == "__main__":
     lr = 5e-2
-    epsilon = 0.1
+    epsilon = 0.2
     num_episodes = 80
     target_update = 2
     iter = 100
-    rho = 0.9
+    rho = 0.8
     rho_list = [2,5]
     beta = 0.5
     epoch = 10
@@ -134,12 +134,12 @@ if __name__ == "__main__":
     #algo = "VDN"
     
     test_mode = "PRE"#"PRE""DUR"
-    env_name = "MUSEUM"
+    env_name = "OFFICE"
     horizon = 70 if env_name =="MUSEUM" else 60
     test_steps = 140 if env_name =="MUSEUM" else 120
     mode_name = "random"
-    robot_num = 3
-    target_model = TargetModel("MUSEUM_Random")
+    robot_num = 2
+    target_model = TargetModel("OFFICE_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
     state_dim = env.position_embed
