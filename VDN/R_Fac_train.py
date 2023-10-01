@@ -35,7 +35,7 @@ def train_resilient_on_policy_multi_agent_dur(env, mixer, agents, num_episodes,r
             for i_episode in range(int(num_episodes / epoch_num)):
                 episode_return,alive_lists,trainsition_dicts = faulty_sampling_during(env, agents,rho_list)
                 return_multi_list.append(episode_return)
-                td_error = central_train_on_policy_dur(mixer, trainsition_dicts,alive_lists,iter)
+                td_error = central_train_on_policy_dur(mixer, trainsition_dicts,alive_lists,iter,agents)
                 td_list.extend(td_error)
                 if (i_episode + 1) % 10 == 0:
                     pbar.set_postfix({'episode': '%d' % (num_episodes / epoch_num * i + i_episode + 1),
@@ -136,13 +136,13 @@ def central_train_on_policy_pre(mixer,transition_dicts,alive_index,iter,agents):
         td_list.append(td_error.item())
     return td_list
 
-def central_train_on_policy_dur(mixer,transition_dicts,alive_list,iter):
+def central_train_on_policy_dur(mixer,transition_dicts,alive_list,iter,agents):
     td_list = []
     if len(alive_list) <= 10:
         print("Wrong Usage of During Execution Mixer")
     else:
         for m in range (iter):
-            td_error = mixer.learn(alive_list,transition_dicts)
+            td_error = mixer.learn(alive_list,transition_dicts,agents)
             td_list.append(td_error.item())
     return td_list
       

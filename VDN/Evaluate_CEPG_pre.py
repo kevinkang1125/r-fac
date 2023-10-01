@@ -143,7 +143,7 @@ if __name__ == "__main__":
     iter = 100
     #target 55 for office 2 robot
     rho = 0.9
-    rho_list = [2,5]
+    rho_list = [8,10]
     beta = 0.5
     epoch = 10
 
@@ -155,19 +155,24 @@ if __name__ == "__main__":
     algo = "V2DN"
     #algo = "VDN"
     
-    test_mode = "PRE"#"PRE""DUR"
+    test_mode = "DUR"#"PRE"#"PRE"
     env_name = "OFFICE"
     test_steps = 140 if env_name =="MUSEUM" else 120
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
-    robot_num = 3
+    robot_num = 5
     target_model = TargetModel("OFFICE_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
     state_dim = env.position_embed
     action_dim = env.action_space
     agents = []
-
+    if robot_num == 3:
+        rho_list = [8,10]
+    elif robot_num == 4:
+        rho_list = [5,9,12]
+    else:
+        rho_list = [6,7,10,13]
     # for i in range(robot_num):
     #     agent = Agent(state_dim, hidden_dim, action_dim, lr, gamma, epsilon, target_update, device)
     #     agents.append(agent)

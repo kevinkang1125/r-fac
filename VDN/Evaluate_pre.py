@@ -94,8 +94,8 @@ if __name__ == "__main__":
     target_update = 2
     iter = 100
     
-    rho = 0.9
-    rho_list = [2,5]
+    rho = 0.8
+    rho_list = [8,10]
     beta = 0.5
     epoch = 10
 
@@ -107,13 +107,13 @@ if __name__ == "__main__":
     algo = "V2DN"
     #algo = "VDN"
     
-    test_mode = "PRE"#"PRE""DUR"
-    env_name = "MUSEUM"
+    test_mode = "DUR"#"PRE"#"PRE"
+    env_name = "OFFICE"
     test_steps = 140 if env_name =="MUSEUM" else 120
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
     robot_num = 3
-    target_model = TargetModel("MUSEUM_Random")
+    target_model = TargetModel("OFFICE_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
     state_dim = env.position_embed
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     #     agents.append(agent)
     
     for i in range(robot_num):
-        path = "./Benchmark_models/V2DN/MUSEUM_V2DN_R{}_R{}.pth".format(robot_num,i)
+        path = "./Benchmark_models/V2DN/OFFICE_V2DN_dur_R{}_R{}.pth".format(robot_num,i)
         agent = Agent(state_dim, hidden_dim, action_dim, lr, gamma,epsilon, device)
         agent.q_net = copy.deepcopy(torch.load(path).cuda())
         agents.append(agent)

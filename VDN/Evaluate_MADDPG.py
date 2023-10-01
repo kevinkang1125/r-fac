@@ -143,7 +143,7 @@ if __name__ == "__main__":
     iter = 100
     
     rho = 0.8
-    rho_list = [2,5]
+    #rho_list = [2,5]
     beta = 0.5
     epoch = 10
 
@@ -161,18 +161,24 @@ if __name__ == "__main__":
     #for 2 robot, 1 start and 69 for target museum
     #for 3 robot, 49 start and 37 for target museum
     #for 4 robot, 49 start and 68 for target museum
-    test_mode = "PRE"#"PRE""DUR"
-    env_name = "MUSEUM"
+    test_mode = "DUR"#"PRE""DUR"
+    env_name = "OFFICE"
     test_steps = 140 if env_name =="MUSEUM" else 120
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
-    robot_num = 4
-    target_model = TargetModel("MUSEUM_Random")
+    robot_num = 5
+    target_model = TargetModel("OFFICE_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
     state_dim = env.position_embed
     action_dim = env.action_space
     agents = []
+    if robot_num == 3:
+        rho_list = [8,10]
+    elif robot_num == 4:
+        rho_list = [5,9,12]
+    else:
+        rho_list = [6,7,10,13]
    
     for i in range(robot_num):
         path = "./Benchmark_models/MADDPG/{}_MADDPG_R{}_R{}.pth".format(env_name,robot_num,i)

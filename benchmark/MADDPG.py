@@ -143,7 +143,7 @@ if __name__ == "__main__":
 
     env_name = "MUSEUM"
     mode_name = "random"
-    robot_num = 2
+    robot_num = 5
     target_model = TargetModel("MUSEUM_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)

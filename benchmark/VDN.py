@@ -158,7 +158,7 @@ class VDN:
 if __name__ == "__main__":
     lr = 1e-4
     epsilon = 0.1
-    num_episodes = 20000
+    num_episodes = 20
     target_update = 10
     buffer_size = 1000
     minimal_size = 500
@@ -170,7 +170,7 @@ if __name__ == "__main__":
 
     env_name = "MUSEUM"
     mode_name = "random"
-    robot_num = 3
+    robot_num = 6
     target_model = TargetModel("MUSEUM_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
@@ -195,12 +195,12 @@ if __name__ == "__main__":
     plt.plot(episodes_list, return_list)
     plt.xlabel('Episodes')
     plt.ylabel('Returns')
-    plt.title('VPG on {}'.format(env_name))
+    plt.title('VDN on {} robot num='.format(env_name,robot_num))
     plt.show()
 
     mv_return = rl_utils.moving_average(return_list, 101)
     plt.plot(episodes_list, mv_return)
     plt.xlabel('Episodes')
     plt.ylabel('Returns')
-    plt.title('VPG on {}'.format(env_name))
+    plt.title('VDN on {} robot num ='.format(env_name,robot_num))
     plt.show()
