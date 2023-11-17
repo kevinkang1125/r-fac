@@ -53,7 +53,7 @@ def faulty_sampling_pre(env, agents, rho):
     for i in range(agent_num):
         if np.random.random() < rho:
             alive_list.append(i)
-    horizon = 70 if env.env_name =="MUSEUM" else 60 if env.env_name == "OFFICE" else None  
+    horizon = 70 if env.env_name =="MUSEUM" else 60
     ##change into index
     num_dicts = alive_list
     observations, states, action_nums = env.reset()
@@ -97,7 +97,7 @@ def faulty_sampling_during(env, agents, rho_list):
     for m in range(agent_num):
         alive_index.append(m)
     observations, states, action_nums = env.reset()
-    horizon = 70 if env.env_name =="MUSEUM" else 60 if env.env_name == "OFFICE" else None
+    horizon = 70 if env.env_name =="MUSEUM" else 60
     counter = 0
     while counter < horizon:
         if counter in rho_list:
