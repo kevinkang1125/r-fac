@@ -15,10 +15,10 @@ class gym_pqh:
         self.embedding_layer = EmbeddingLayer(self.total_position+1, self.position_embed, 0)
         self.mode_num = mode_name
         self.robot_num = robot_num
-        self.robot_initial_position = 28 if env_name == "MUSEUM" else 43 if env_name == "OFFICE" else None
+        self.robot_initial_position = 10 if env_name == "MUSEUM" else 44 if env_name == "OFFICE" else None
         self.robot_initial_actionNum_set = [self.map.next_total_action(self.robot_initial_position) for _ in range(robot_num)]
         self.robot_position_initial_list = [self.robot_initial_position for _ in range(robot_num)]
-        self.target_initial_position = 66 if env_name == "MUSEUM" else 46 if env_name == "OFFICE" else None
+        self.target_initial_position = 66 if env_name == "MUSEUM" else 47 if env_name == "OFFICE" else None
         # *********************************************随机3启动************************************************************：
         self.target_random_initial_set = [61, 66, 67, 68, 69] if env_name == "MUSEUM" else [47,48,54,55,59] if env_name == "OFFICE" else None
         # ************************************************************************************************************************
