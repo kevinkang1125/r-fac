@@ -92,12 +92,12 @@ if __name__ == "__main__":
     epsilon = 0.1
     num_episodes = 80
     target_update = 2
-    iter = 100
+    iter = 10
     
     rho = 0.08
     rho_list = [8,10]
     beta = 0.5
-    epoch = 10
+    epoch = 2
 
     hidden_dim = 128
     gamma = 0.95
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     test_steps = 140 if env_name =="MUSEUM" else 120
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
-    robot_num = 5
+    robot_num = 4
     target_model = TargetModel("OFFICE_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
