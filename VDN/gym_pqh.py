@@ -15,10 +15,10 @@ class gym_pqh:
         self.embedding_layer = EmbeddingLayer(self.total_position+1, self.position_embed, 0)
         self.mode_num = mode_name
         self.robot_num = robot_num
-        self.robot_initial_position = 28 if env_name == "MUSEUM" else 43 if env_name == "OFFICE" else None
+        self.robot_initial_position = 10 if env_name == "MUSEUM" else 44 if env_name == "OFFICE" else None
         self.robot_initial_actionNum_set = [self.map.next_total_action(self.robot_initial_position) for _ in range(robot_num)]
         self.robot_position_initial_list = [self.robot_initial_position for _ in range(robot_num)]
-        self.target_initial_position = 66 if env_name == "MUSEUM" else 46 if env_name == "OFFICE" else None
+        self.target_initial_position = 66 if env_name == "MUSEUM" else 54 if env_name == "OFFICE" else None
         # *********************************************随机3启动************************************************************：
         self.target_random_initial_set = [61, 66, 67, 68, 69] if env_name == "MUSEUM" else [47,48,54,55,59] if env_name == "OFFICE" else None
         # ************************************************************************************************************************
@@ -26,7 +26,7 @@ class gym_pqh:
         self.reward_initial_list = [[] for _ in range(robot_num)]
         # self.observation_initial_list = [[self.robot_initial_position] for _ in range(robot_num)]
         # self.observation_position3_initial_list = [[self.robot_initial_position] for _ in range(robot_num)]
-
+        self.target_list = []
         self.reward_list = copy.deepcopy(self.reward_initial_list)
         self.robot_position_list = copy.copy(self.robot_position_initial_list)
         self.observation_list = [[] for _ in range(robot_num)]
@@ -64,7 +64,8 @@ class gym_pqh:
 
     def reset(self):
         # print("reward_list", self.)
-        #print("trajectory_list", self.trajectory_list)
+        print("trajectory_list", self.trajectory_list)
+        print("target_list",self.target_list)
         # print("reward_list",self.reward_list)
         self.robot_position_list = copy.copy(self.robot_position_initial_list)
         self.reward_list = copy.deepcopy(self.reward_initial_list)
@@ -77,6 +78,7 @@ class gym_pqh:
         self.trajectory_list = copy.deepcopy(self.trajectory_initial_list)
         self._observation_init()
         self.done = False
+        self.target_list = []
         return copy.deepcopy(self.observation_list), copy.deepcopy(self.observation_position3_list), copy.deepcopy(self.robot_initial_actionNum_set)
 
     # reward contains 2 part, capture will get a high reward, return will get a high penalty
@@ -110,6 +112,7 @@ class gym_pqh:
         self.target_last_position = self.target_position
         next_position = self.target_model.next_position(self.target_position)
         self.target_position = next_position
+        self.target_list.append(self.target_position)
         # print("target_position:",self.target_position)
         # ********************************测试用,一定要删掉************************************
         # self.target_position = self.target_position

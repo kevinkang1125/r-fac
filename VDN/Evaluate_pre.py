@@ -92,12 +92,12 @@ if __name__ == "__main__":
     epsilon = 0.1
     num_episodes = 80
     target_update = 2
-    iter = 100
+    iter = 10
     
-    rho = 0.8
+    rho = 0.08
     rho_list = [8,10]
     beta = 0.5
-    epoch = 10
+    epoch = 2
 
     hidden_dim = 128
     gamma = 0.95
@@ -107,25 +107,46 @@ if __name__ == "__main__":
     algo = "V2DN"
     #algo = "VDN"
     
-    test_mode = "DUR"#"PRE"#"PRE"
+    test_mode = "DUR"#"PRE"#
     env_name = "OFFICE"
     test_steps = 140 if env_name =="MUSEUM" else 120
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
-    robot_num = 3
+    robot_num = 4
     target_model = TargetModel("OFFICE_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
     state_dim = env.position_embed
     action_dim = env.action_space
     agents = []
+    if robot_num == 3:
+        if rho == 0.04:
+            rho_list = [8,21]
+        elif rho == 0.06:
+            rho_list = [6,14]
+        else:
+            rho_list = [4,10]
+    elif robot_num == 4:
+        if rho == 0.04:
+            rho_list = [6,15,28]
+        elif rho == 0.06:
+            rho_list = [4,10,18]
+        else:
+            rho_list = [3,7,13]
+    elif robot_num == 5: 
+        if rho == 0.04:
+            rho_list = [5,11,20,33]
+        elif rho == 0.06:
+            rho_list = [3,7,13,21]
+        else:
+            rho_list = [2,6,9,16]
 
     # for i in range(robot_num):
     #     agent = Agent(state_dim, hidden_dim, action_dim, lr, gamma, epsilon, target_update, device)
     #     agents.append(agent)
     
     for i in range(robot_num):
-        path = "./Benchmark_models/V2DN/OFFICE_V2DN_dur_R{}_R{}.pth".format(robot_num,i)
+        path = "./Benchmark_models/V2DN/Dur/0.006/OFFICE_V2DN_R{}_R{}.pth".format(robot_num,i)
         agent = Agent(state_dim, hidden_dim, action_dim, lr, gamma,epsilon, device)
         agent.q_net = copy.deepcopy(torch.load(path).cuda())
         agents.append(agent)

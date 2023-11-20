@@ -94,7 +94,7 @@ if __name__ == "__main__":
     target_update = 2
     iter = 100
     
-    rho = 0.8
+    rho = 0.04
     rho_list = [2,5]
     beta = 0.5
     epoch = 10
@@ -106,32 +106,47 @@ if __name__ == "__main__":
     device = torch.device("cuda")
     algo = "V2DN"
     #algo = "VDN"
-    
+    # 4 museum r10 t3 *1.
     test_mode = "DUR"#"PRE""DUR"
-    env_name = "MUSEUM"
+    env_name = "OFFICE"
     test_steps = 140 if env_name =="MUSEUM" else 120
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
-    robot_num = 5
-    target_model = TargetModel("MUSEUM_Random")
+    robot_num = 3
+    target_model = TargetModel("OFFICE_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
     state_dim = env.position_embed
     action_dim = env.action_space
     agents = []
     if robot_num == 3:
-        rho_list = [8,10]
+        if rho == 0.04:
+            rho_list = [8,21]
+        elif rho == 0.06:
+            rho_list = [6,14]
+        else:
+            rho_list = [4,10]
     elif robot_num == 4:
-        rho_list = [5,9,12]
-    else:
-        rho_list = [6,7,10,13]
+        if rho == 0.04:
+            rho_list = [6,15,28]
+        elif rho == 0.06:
+            rho_list = [4,10,18]
+        else:
+            rho_list = [3,7,13]
+    elif robot_num == 5: 
+        if rho == 0.04:
+            rho_list = [5,11,20,33]
+        elif rho == 0.06:
+            rho_list = [3,7,13,21]
+        else:
+            rho_list = [2,6,9,16]
 
     # for i in range(robot_num):
     #     agent = Agent(state_dim, hidden_dim, action_dim, lr, gamma, epsilon, target_update, device)
     #     agents.append(agent)
     
     for i in range(robot_num):
-        path = "./Benchmark_models/VDN/MUSEUM_VDN_R{}_R{}.pth".format(robot_num,i)
+        path = "./Benchmark_models/VDN/OFFICE_VDN_R{}_R{}.pth".format(robot_num,i)
         agent = Agent(state_dim, hidden_dim, action_dim, lr, gamma,epsilon, device)
         agent.q_net = copy.deepcopy(torch.load(path).cuda())
         agents.append(agent)

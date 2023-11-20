@@ -238,12 +238,12 @@ class V2DN_dur:
 
 if __name__ == "__main__":
     lr = 2e-5
-    epsilon = 0.15
+    epsilon = 0.12
     num_episodes = 30000
     target_update = 5
     iter = 10
      
-    rho = 0.8
+    rho = 0.08
     # rho_list = [8,10]
     #rho_list = [5,9,12]
     # rho_list = [6,7,10,13]
@@ -261,7 +261,7 @@ if __name__ == "__main__":
     env_name = "OFFICE"
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
-    robot_num = 3
+    robot_num = 5
     target_model = TargetModel("OFFICE_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
@@ -270,11 +270,26 @@ if __name__ == "__main__":
     agents = []
     replay_buffers = []
     if robot_num == 3:
-        rho_list = [8,10]
+        if rho == 0.04:
+            rho_list = [8,21]
+        elif rho == 0.06:
+            rho_list = [6,14]
+        else:
+            rho_list = [4,10]
     elif robot_num == 4:
-        rho_list = [5,9,12]
-    else:
-        rho_list = [6,7,10,13]
+        if rho == 0.04:
+            rho_list = [6,15,28]
+        elif rho == 0.06:
+            rho_list = [4,10,18]
+        else:
+            rho_list = [3,7,13]
+    elif robot_num == 5: 
+        if rho == 0.04:
+            rho_list = [5,11,20,33]
+        elif rho == 0.06:
+            rho_list = [3,7,13,21]
+        else:
+            rho_list = [2,6,9,16]
 
     for i in range(robot_num):
         agent = Agent(state_dim, hidden_dim, action_dim, lr, gamma, epsilon, target_update, device)
@@ -291,19 +306,19 @@ if __name__ == "__main__":
     #     agents[i].save('./on policy robot{} in teamsize{} with rho{} in {}.pth'.format(i,robot_num,rho,env_name))
     # episodes_list = list(range(len(return_list)))
     
-    # for h in range(len(agents)):
-    #     net_name = "./Benchmark_models/V2DN/" + env_name + "_V2DN_R" + str(len(agents)) + "_R" + str(h)
-    #     torch.save(agents[h].q_net, net_name + '.pth')
     for h in range(len(agents)):
-        net_name = "./Benchmark_models/V2DN/" + env_name + "_V2DN_dur_R" + str(len(agents)) + "_R" + str(h)
+        net_name = "./Benchmark_models/V2DN/Dur/0.006/" + env_name + "_V2DN_R" + str(len(agents)) + "_R" + str(h)
         torch.save(agents[h].q_net, net_name + '.pth')
+    # for h in range(len(agents)):
+    #     net_name = "./Benchmark_models/V2DN/" + env_name + "_V2DN_dur_R" + str(len(agents)) + "_R" + str(h)
+    #     torch.save(agents[h].q_net, net_name + '.pth')
     #plt.plot(episodes_list, return_list)
     
     plt.subplot(221)
     plt.plot(return_list) 
     plt.xlabel('Episodes')
     plt.ylabel('team_reward')
-    plt.title('On-policy DUR reward on {} with rho={} with {}'.format(env_name,rho,algo))
+    plt.title('On-policy DUR reward on {} with rho={} with {}'.format(env_name,rho,robot_num))
     #plt.show()
     plt.subplot(222)
     plt.plot(td_list) 
