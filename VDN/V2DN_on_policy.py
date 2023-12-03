@@ -239,11 +239,11 @@ class V2DN_dur:
 if __name__ == "__main__":
     lr = 2e-5
     epsilon = 0.12
-    num_episodes = 30000
+    num_episodes = 25000
     target_update = 5
     iter = 10
      
-    rho = 0.08
+    rho = 0.8
     # rho_list = [8,10]
     #rho_list = [5,9,12]
     # rho_list = [6,7,10,13]
@@ -261,7 +261,7 @@ if __name__ == "__main__":
     env_name = "OFFICE"
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
-    robot_num = 5
+    robot_num = 4
     target_model = TargetModel("OFFICE_Random")
     env = gym_pqh(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
@@ -296,19 +296,19 @@ if __name__ == "__main__":
         agents.append(agent)
     
 
-    #mixer = V2DN_pre(gamma_2,agent_num=robot_num, horizon= horizon)
-    mixer = V2DN_dur(gamma_2,robot_num, horizon= horizon)
+    mixer = V2DN_pre(gamma_2,agent_num=robot_num, horizon= horizon)
+    #mixer = V2DN_dur(gamma_2,robot_num, horizon= horizon)
 
 
-    #return_list, td_list = rf.train_resilient_on_policy_multi_agent(env, mixer, agents, num_episodes, rho, iter)
-    return_list, td_list = rf.train_resilient_on_policy_multi_agent_dur(env, mixer, agents, num_episodes, rho_list, iter)
+    return_list, td_list = rf.train_resilient_on_policy_multi_agent(env, mixer, agents, num_episodes, rho, iter)
+    #return_list, td_list = rf.train_resilient_on_policy_multi_agent_dur(env, mixer, agents, num_episodes, rho_list, iter)
     # for i in range(robot_num):
     #     agents[i].save('./on policy robot{} in teamsize{} with rho{} in {}.pth'.format(i,robot_num,rho,env_name))
     # episodes_list = list(range(len(return_list)))
     
-    for h in range(len(agents)):
-        net_name = "./Benchmark_models/V2DN/Dur/0.006/" + env_name + "_V2DN_R" + str(len(agents)) + "_R" + str(h)
-        torch.save(agents[h].q_net, net_name + '.pth')
+    # for h in range(len(agents)):
+    #     net_name = "./Benchmark_models/V2DN/Dur/0.006/" + env_name + "_V2DN_R" + str(len(agents)) + "_R" + str(h)
+    #     torch.save(agents[h].q_net, net_name + '.pth')
     # for h in range(len(agents)):
     #     net_name = "./Benchmark_models/V2DN/" + env_name + "_V2DN_dur_R" + str(len(agents)) + "_R" + str(h)
     #     torch.save(agents[h].q_net, net_name + '.pth')
@@ -326,13 +326,14 @@ if __name__ == "__main__":
     plt.ylabel('TD_error')
     plt.title('On-policy TD_error on {} with rho={} with {}'.format(env_name,rho,algo))
     #plt.show()
-    np.savetxt("td_list.txt",td_list)
+    #np.savetxt("td_list.txt",td_list)
     mv_return = rl_utils.moving_average(return_list, 101)
     plt.subplot(223)
     plt.plot(mv_return)
     plt.xlabel('Episodes')
     plt.ylabel('average_reward')
     plt.title('On-policy DUR average reward on {}'.format(env_name))
+    np.savetxt("episode_list.txt{}".format(rho),mv_return)
     #plt.show()
     mv_return = rl_utils.moving_average(td_list, 101)
     plt.subplot(224)
