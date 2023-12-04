@@ -1,10 +1,11 @@
+# 引入一次多个target,来使robot team训练更合理， 长度统一
 from Map import Map
 from Target import TargetModel
 from Embedding import EmbeddingLayer
 import torch
 import copy
 import random
-class gym_pqh:
+class gym_search:
     def __init__(self, env_name, mode_name, robot_num, target_model):
         self.env_name = env_name
         self.map = Map(env_name)
@@ -16,15 +17,14 @@ class gym_pqh:
         self.embedding_layer = EmbeddingLayer(self.total_position+1, self.position_embed, 0)
         self.mode_name = mode_name
         self.robot_num = robot_num
-        self.robot_initial_position = 28
+        self.robot_initial_position = 28 if env_name == "MUSEUM" else 43 if env_name == "OFFICE" else None
         self.robot_initial_actionNum_set = [self.map.next_total_action(self.robot_initial_position) for _ in range(robot_num)]
         self.robot_position_initial_list = [self.robot_initial_position for _ in range(robot_num)]
-        self.target_initial_position = 66
-        self.target_random_initial_set = [61, 66, 67, 68, 69]
+        self.target_initial_position = 66 if env_name == "MUSEUM" else 48 if env_name == "OFFICE" else None
+        self.target_random_initial_set = [61, 66, 67, 68, 69] if env_name == "MUSEUM" else [47,48,54,55,59] if env_name == "OFFICE" else None
         self.target_initial_set = [self.target_initial_position for _ in range(self.target_num)]
         self.reward_initial_list = [[] for _ in range(robot_num)]
         self.trajectory_initial_list = [[self.robot_initial_position] for _ in range(robot_num)]
-        self.rho_during = 5
         # *********************************************随机3启动************************************************************：
 
         # ************************************************************************************************************************

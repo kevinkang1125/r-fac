@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from torch.nn.utils.rnn import pad_sequence
 import rl_utils
-from gym_pqh_multi_target import gym_pqh
+from gym_multi_target import gym_search
 from Target import TargetModel
 import multi_robot_utils_off_policy as multi_robot_utils_off_policy
 from ReplayBuffer import ReplayBuffer
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     mode_name = "random"
     robot_num = 5
     target_model = TargetModel(env_name + "_Random")
-    env = gym_pqh(env_name, mode_name, robot_num, target_model)
+    env = gym_search(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
     state_dim = env.position_embed
     action_dim = env.action_space
