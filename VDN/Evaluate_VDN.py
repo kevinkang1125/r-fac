@@ -11,15 +11,10 @@ import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from torch.nn.utils.rnn import pad_sequence
-sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/Environment')
-sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/Quality_Diversity')
-sys.path.append('/Users/pqh/PycharmProjects/HandsonRL/Efficient_Search/RL_POMDP')
 import rl_utils as rl_utils
-from gym_pqh import gym_pqh
+from gym_single_target import gym_search
 from Target import TargetModel
 import multi_robot_utils_off_policy as multi_robot_utils_off_policy
-#import V2DN_off_policy
-#from V2DN_off_policy import Agent as V2DN_Agent
 class Qnet(torch.nn.Module):
     def __init__(self, obs_dim, hidden_dim, action_dim,device):
         super(Qnet, self).__init__()
@@ -114,7 +109,7 @@ if __name__ == "__main__":
     mode_name = "random"
     robot_num = 3
     target_model = TargetModel("OFFICE_Random")
-    env = gym_pqh(env_name, mode_name, robot_num, target_model)
+    env = gym_search(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
     state_dim = env.position_embed
     action_dim = env.action_space

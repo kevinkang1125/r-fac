@@ -4,7 +4,7 @@ from Embedding import EmbeddingLayer
 import torch
 import copy
 import random
-class gym_pqh:
+class gym_search:
     def __init__(self, env_name, mode_name, robot_num, target_model):
         self.env_name = env_name
         self.map = Map(env_name)
