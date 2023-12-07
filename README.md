@@ -13,10 +13,11 @@
 
 ## Description
 * We integrate our simulation toolbox into a Python package called `V2DN`. 
-* `opt.py` realizes the centralized optimizer for given environment and MRS.
-* `env.py` constructs environments. Predefined topological graphs include OFFICE and MUSEUM.
-* `agent.py` defines the structure and actions of individual robots.
+* `Train.py` realizes the multiagent reinforcement learning algorithms for given environment and MRS.
+* `gym_multi_target.py` constructs training environments with multiple targets. Predefined topological graphs include OFFICE and MUSEUM.
+* `Agent.py` defines the structure and actions of individual robots.
 * `main.py` claims legal arguments of command line input and the procedure of our algorithm.
+* `benchmark` folder contains the state of art algorithm for comparison.
 
 ## Usage
 If you want to optimize a MRS of 4 robots in the MUSEUM environment with lr=1e-3 for 5,000 epochs and test it for 1,000,000 steps and require real-time feedbacks and final outputs, the command line would be like:
