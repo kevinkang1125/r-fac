@@ -20,8 +20,8 @@
 * `benchmark` folder contains the state of art algorithm for comparison.
 
 ## Usage
-If you want to optimize a MRS of 4 robots in the MUSEUM environment with lr=1e-3 for 5,000 epochs and test it for 1,000,000 steps and require real-time feedbacks and final outputs, the command line would be like:
+If you want to train a MRS of 4 robots in the MUSEUM environment with lr=1e-3 for 500,000, episodes  the command line would be like:
 ```
-python main.py --env MUSEUM --size_MRS 4 --epoch 5000 --step 1000000 --lr 1e-3 --verbose --output
+python main.py --map_name MUSEUM --robot_num 4 --train_episodes 500000 --lr 1e-3
 ```
-For more operations, please refer to `parse_opt()` in `main.py`.
+For more operations, please refer to `parse_args()` in `main.py`.
