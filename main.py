@@ -5,6 +5,7 @@ import gym
 import numpy as np
 import collections
 from tqdm import tqdm
+import argparse
 import math
 import torch
 import torch.nn.functional as F
@@ -19,6 +20,39 @@ import V2DN.R_Fac_train as rf
 from V2DN.Train import V2DN_dur,V2DN_pre
 
 
+parser = argparse.ArgumentParser(description='R-FAC_V2DN')
+parser.add_argument('--map_name', default='Museum',
+                    help='Map_Name')
+parser.add_argument('--mode_name', default='random',
+                    help='Target moving policy')
+parser.add_argument('--target_model', default= TargetModel("MUSEUM_Random"),
+                    help='Target Map and Policy')
+parser.add_argument('--result_dir', './results',
+                    help="Directory Path to store results")
+parser.add_argument('--no_cuda', action='store_true', default=True,
+                    help='Enforces no cuda usage (default: %(default)s)')
+parser.add_argument('--train', action='store_true', default=True,
+                    help='Trains the model')
+parser.add_argument('--n_inter', default=10,
+                    help='The number of intervals.')
+parser.add_argument('--robot_num', default=3,
+                    help='The number of agents.')
+parser.add_argument('--failure', default='PRE',
+                    help='failure type of robots(PRE refer pre-deployment and DUR refer to during execution')
+parser.add_argument('--rho', default=0.9,
+                    help='failure rate of robot')
+parser.add_argument('--lr', type=float, default=2e-5,
+                    help='Learning rate')
+parser.add_argument('--discount', type=float, default=0.9,
+                    help=' Discount rate (or Gamma) for TD error (default: %(default)s)')
+parser.add_argument('--train_episodes', type=int, default=10000,
+                    help='Learning rate (default: %(default)s)')
+parser.add_argument('--batch_size', type=int, default=70,
+                    help='Policy horizon')
+parser.add_argument('--seed', type=int, default=0,
+                    help='seed (default: %(default)s)')
+args = parser.parse_args()
+
 if __name__ == "__main__":
     lr = 2e-5
     epsilon = 0.12
@@ -32,9 +66,8 @@ if __name__ == "__main__":
     gamma_2 = 0.9
     device = torch.device("cuda")
     algo = "V2DN"
-    
+    failure_mode = args.failure
 
-    #env_name = "MUSEUM"
     env_name = "OFFICE"
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
@@ -45,51 +78,23 @@ if __name__ == "__main__":
     state_dim = env.position_embed
     action_dim = env.action_space
     agents = []
-    replay_buffers = []
-    if robot_num == 3:
-        if rho == 0.04:
-            rho_list = [8,21]
-        elif rho == 0.06:
-            rho_list = [6,14]
-        else:
-            rho_list = [4,10]
-    elif robot_num == 4:
-        if rho == 0.04:
-            rho_list = [6,15,28]
-        elif rho == 0.06:
-            rho_list = [4,10,18]
-        else:
-            rho_list = [3,7,13]
-    elif robot_num == 5: 
-        if rho == 0.04:
-            rho_list = [5,11,20,33]
-        elif rho == 0.06:
-            rho_list = [3,7,13,21]
-        else:
-            rho_list = [2,6,9,16]
+    rho_list = rl_utils.rho_transfer(rho,robot_num)
 
     for i in range(robot_num):
-        agent = Robot(state_dim, hidden_dim, action_dim, lr, gamma, epsilon, target_update, device)
+        agent = Robot(state_dim, hidden_dim, action_dim, args.lr, gamma, epsilon, target_update, device)
         agents.append(agent)
     
+    if failure_mode == "PRE":
+        mixer = V2DN_pre(gamma_2,agent_num=robot_num, horizon= horizon)
+        return_list, td_list = rf.train_resilient_on_policy_multi_agent(env, mixer, agents, num_episodes, rho, iter)
+    elif failure_mode == "DUR":
+        mixer = V2DN_dur(gamma_2,robot_num, horizon= horizon)
+        return_list, td_list = rf.train_resilient_on_policy_multi_agent_dur(env, mixer, agents, num_episodes, rho_list, iter)
 
-    #mixer = V2DN_pre(gamma_2,agent_num=robot_num, horizon= horizon)
-    mixer = V2DN_dur(gamma_2,robot_num, horizon= horizon)
-
-
-    #return_list, td_list = rf.train_resilient_on_policy_multi_agent(env, mixer, agents, num_episodes, rho, iter)
-    return_list, td_list = rf.train_resilient_on_policy_multi_agent_dur(env, mixer, agents, num_episodes, rho_list, iter)
-    # for i in range(robot_num):
-    #     agents[i].save('./on policy robot{} in teamsize{} with rho{} in {}.pth'.format(i,robot_num,rho,env_name))
-    # episodes_list = list(range(len(return_list)))
     
     for h in range(len(agents)):
-        net_name = "./Benchmark_models/V2DN/Dur/0.006/" + env_name + "_V2DN_R" + str(len(agents)) + "_R" + str(h)
+        net_name = "./results/" +failure_mode +rho+ env_name + "_V2DN_R" + str(len(agents)) + "_R" + str(h)
         torch.save(agents[h].q_net, net_name + '.pth')
-    # for h in range(len(agents)):
-    #     net_name = "./Benchmark_models/V2DN/" + env_name + "_V2DN_dur_R" + str(len(agents)) + "_R" + str(h)
-    #     torch.save(agents[h].q_net, net_name + '.pth')
-    #plt.plot(episodes_list, return_list)
     
     plt.subplot(221)
     plt.plot(return_list) 

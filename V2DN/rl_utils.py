@@ -87,3 +87,27 @@ def compute_advantage(gamma, lmbda, td_delta):
         advantage_list.append(advantage)
     advantage_list.reverse()
     return torch.tensor(advantage_list, dtype=torch.float)
+
+def rho_transfer(rho,robot_num):
+    if robot_num == 3:
+        if rho == 0.04:
+            rho_list = [8,21]
+        elif rho == 0.06:
+            rho_list = [6,14]
+        else:
+            rho_list = [4,10]
+    elif robot_num == 4:
+        if rho == 0.04:
+            rho_list = [6,15,28]
+        elif rho == 0.06:
+            rho_list = [4,10,18]
+        else:
+            rho_list = [3,7,13]
+    elif robot_num == 5: 
+        if rho == 0.04:
+            rho_list = [5,11,20,33]
+        elif rho == 0.06:
+            rho_list = [3,7,13,21]
+        else:
+            rho_list = [2,6,9,16]
+    return rho_list
