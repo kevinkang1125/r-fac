@@ -27,19 +27,19 @@ parser.add_argument('--mode_name', default='random',
                     help='Target moving policy')
 parser.add_argument('--target_model', default= TargetModel("MUSEUM_Random"),
                     help='Target Map and Policy')
-parser.add_argument('--result_dir', './results',
+parser.add_argument('--result_dir', default='results',
                     help="Directory Path to store results")
 parser.add_argument('--no_cuda', action='store_true', default=True,
                     help='Enforces no cuda usage (default: %(default)s)')
 parser.add_argument('--train', action='store_true', default=True,
                     help='Trains the model')
-parser.add_argument('--n_inter', default=10,
+parser.add_argument('--n_inter', type=int, default=10,
                     help='The number of intervals.')
-parser.add_argument('--robot_num', default=3,
+parser.add_argument('--robot_num', type=int, default=3,
                     help='The number of agents.')
 parser.add_argument('--failure', default='PRE',
                     help='failure type of robots(PRE refer pre-deployment and DUR refer to during execution')
-parser.add_argument('--rho', default=0.9,
+parser.add_argument('--rho', type=float, default=0.9,
                     help='failure rate of robot')
 parser.add_argument('--lr', type=float, default=2e-5,
                     help='Learning rate')
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     target_update = 5
     iter = 10
      
-    rho = 0.08
+    rho = args.rho
     hidden_dim = 256
     #gamma = 0.95
     gamma_2 = args.discount
