@@ -46,7 +46,7 @@ parser.add_argument('--lr', type=float, default=2e-5,
 parser.add_argument('--discount', type=float, default=0.9,
                     help=' Discount rate (or Gamma) for TD error (default: %(default)s)')
 parser.add_argument('--train_episodes', type=int, default=10000,
-                    help='Learning rate (default: %(default)s)')
+                    help='episodes for training (default: %(default)s)')
 parser.add_argument('--batch_size', type=int, default=70,
                     help='Policy horizon')
 parser.add_argument('--seed', type=int, default=0,
@@ -54,25 +54,25 @@ parser.add_argument('--seed', type=int, default=0,
 args = parser.parse_args()
 
 if __name__ == "__main__":
-    lr = 2e-5
+    lr = args.lr
     epsilon = 0.12
-    num_episodes = 30000
+    num_episodes = args.train_episodes
     target_update = 5
     iter = 10
      
     rho = 0.08
     hidden_dim = 256
-    gamma = 0.95
-    gamma_2 = 0.9
+    #gamma = 0.95
+    gamma_2 = args.discount
     device = torch.device("cuda")
     algo = "V2DN"
-    failure_mode = args.failure
+    failure_mode = "PRE"
 
-    env_name = "OFFICE"
+    env_name = args.map_name
     horizon = 70 if env_name =="MUSEUM" else 60
     mode_name = "random"
-    robot_num = 5
-    target_model = TargetModel("OFFICE_Random")
+    robot_num = args.robot_num
+    target_model = args.target_model
     env = gym_search(env_name, mode_name, robot_num, target_model)
     torch.manual_seed(0)
     state_dim = env.position_embed
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     rho_list = rl_utils.rho_transfer(rho,robot_num)
 
     for i in range(robot_num):
-        agent = Robot(state_dim, hidden_dim, action_dim, args.lr, gamma, epsilon, target_update, device)
+        agent = Robot(state_dim, hidden_dim, action_dim, lr, gamma_2, epsilon, target_update, device)
         agents.append(agent)
     
     if failure_mode == "PRE":
