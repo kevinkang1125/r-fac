@@ -3,6 +3,10 @@
 * This is the code repository for the paper "R-FAC: Resilient Value Function Factorization for Multi-Robot Efficient Search with Individual Failure Probabilities" that was submitted to IEEE Trans on Robotics 2023. 
 * This is a joint research program among A*STAR, MIT and NUS. (© 2022 A\*STAR. All rights reserved.)
 
+
+https://github.com/user-attachments/assets/8aba8959-9a8f-4c8a-9e1c-0366565bdfa2
+
+
 ## Dependencies
 * Python 3.8
 * NetworkX 2.8.4
